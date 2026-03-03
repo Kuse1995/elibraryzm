@@ -13,6 +13,7 @@ import Cart from "./pages/Cart";
 import Auth from "./pages/Auth";
 import MyLibrary from "./pages/MyLibrary";
 import Admin from "./pages/Admin";
+import PaymentVerify from "./pages/PaymentVerify";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

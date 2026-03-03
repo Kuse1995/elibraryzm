@@ -1,20 +1,104 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Trash2, ShoppingCart, BookOpen } from "lucide-react";
+import { Trash2, ShoppingCart, BookOpen, Loader2 } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
+import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Cart = () => {
   const { items, removeItem, clearCart, total } = useCart();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
   const [guestEmail, setGuestEmail] = useState("");
 
-  const handleCheckout = () => {
+  // Card fields
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
+  const [cardExpiryMonth, setCardExpiryMonth] = useState("");
+  const [cardExpiryYear, setCardExpiryYear] = useState("");
+
+  // Billing fields
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [streetAddress, setStreetAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+
+  const email = user?.email || guestEmail;
+
+  const handleCheckout = async () => {
     if (items.length === 0) return;
-    // TODO: Integrate Lenco checkout
-    toast.info("Payment integration coming soon! Lenco checkout will be connected.");
+    if (!email) {
+      toast.error("Please enter your email address");
+      return;
+    }
+    if (!cardNumber || !cardCvv || !cardExpiryMonth || !cardExpiryYear) {
+      toast.error("Please fill in all card details");
+      return;
+    }
+    if (!firstName || !lastName) {
+      toast.error("Please enter your first and last name");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("initiate-payment", {
+        body: {
+          items: items.map((i) => ({ id: i.id })),
+          email,
+          userId: user?.id || null,
+          card: {
+            number: cardNumber,
+            cvv: cardCvv,
+            expiryMonth: cardExpiryMonth,
+            expiryYear: cardExpiryYear,
+          },
+          billing: {
+            firstName,
+            lastName,
+            streetAddress: streetAddress || "N/A",
+            city: city || "Lagos",
+            postalCode: postalCode || "100001",
+            country: "NG",
+          },
+        },
+      });
+
+      if (error) throw new Error(error.message);
+
+      if (data.status === "3ds-redirect" && data.redirectUrl) {
+        // Redirect to 3DS authentication
+        window.location.href = data.redirectUrl;
+        return;
+      }
+
+      if (data.status === "success") {
+        clearCart();
+        toast.success("Payment successful!");
+        navigate(`/payment-verify?status=successful&reference=${data.reference}`);
+        return;
+      }
+
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      // Pending
+      toast.info("Payment is being processed...");
+      navigate(`/payment-verify?status=pending&reference=${data.reference}`);
+    } catch (err: any) {
+      console.error("Checkout error:", err);
+      toast.error(err.message || "Payment failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (items.length === 0) {
@@ -57,28 +141,58 @@ const Cart = () => {
       </div>
 
       <Card>
-        <CardContent className="p-6 space-y-4">
+        <CardContent className="p-6 space-y-5">
           <div className="flex justify-between text-lg font-semibold">
             <span>Total</span>
             <span className="text-accent">₦{(total / 100).toLocaleString()}</span>
           </div>
 
-          <div>
-            <label className="text-sm font-medium mb-1.5 block">Email for delivery (guest checkout)</label>
+          {!user && (
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Email for delivery</label>
+              <Input type="email" placeholder="your@email.com" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} />
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Billing Details</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <Input placeholder="First Name *" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+              <Input placeholder="Last Name *" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+            </div>
+            <Input placeholder="Street Address" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} />
+            <div className="grid grid-cols-2 gap-3">
+              <Input placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} />
+              <Input placeholder="Postal Code" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Card Details</h3>
             <Input
-              type="email"
-              placeholder="your@email.com"
-              value={guestEmail}
-              onChange={(e) => setGuestEmail(e.target.value)}
+              placeholder="Card Number *"
+              value={cardNumber}
+              onChange={(e) => setCardNumber(e.target.value.replace(/[^\d\s]/g, ""))}
+              maxLength={19}
             />
+            <div className="grid grid-cols-3 gap-3">
+              <Input placeholder="MM *" value={cardExpiryMonth} onChange={(e) => setCardExpiryMonth(e.target.value.replace(/\D/g, ""))} maxLength={2} />
+              <Input placeholder="YY *" value={cardExpiryYear} onChange={(e) => setCardExpiryYear(e.target.value.replace(/\D/g, ""))} maxLength={4} />
+              <Input placeholder="CVV *" type="password" value={cardCvv} onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, ""))} maxLength={4} />
+            </div>
           </div>
 
           <Button
             className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
             size="lg"
             onClick={handleCheckout}
+            disabled={loading}
           >
-            Pay with Lenco — ₦{(total / 100).toLocaleString()}
+            {loading ? (
+              <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Processing...</>
+            ) : (
+              <>Pay ₦{(total / 100).toLocaleString()}</>
+            )}
           </Button>
 
           <div className="flex justify-between">
