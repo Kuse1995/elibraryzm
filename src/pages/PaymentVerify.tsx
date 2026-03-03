@@ -62,7 +62,7 @@ const PaymentVerify = () => {
     if (isSuccess && !processed) {
       clearCart();
       setProcessed(true);
-      const destination = user ? "/my-library" : "/browse";
+      const destination = user ? "/my-library" : `/guest-downloads?reference=${reference}`;
       const timer = setTimeout(() => navigate(destination), 2500);
       return () => clearTimeout(timer);
     }
