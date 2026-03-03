@@ -1,1 +1,7 @@
 project_id = "urevgkspvzyazikrfmvp"
+
+[functions.initiate-payment]
+verify_jwt = false
+
+[functions.lenco-webhook]
+verify_jwt = false

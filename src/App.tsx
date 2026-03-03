@@ -13,6 +13,7 @@ import Cart from "./pages/Cart";
 import Auth from "./pages/Auth";
 import MyLibrary from "./pages/MyLibrary";
 import Admin from "./pages/Admin";
+import PaymentVerify from "./pages/PaymentVerify";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/my-library" element={<MyLibrary />} />
                 <Route path="/admin" element={<Admin />} />
+                <Route path="/payment-verify" element={<PaymentVerify />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Layout>
