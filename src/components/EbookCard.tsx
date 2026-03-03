@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
-import { Ebook } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShoppingCart, BookOpen } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "sonner";
+import { Tables } from "@/integrations/supabase/types";
+
+type Ebook = Tables<"ebooks">;
 
 const EbookCard = ({ ebook }: { ebook: Ebook }) => {
   const { addItem, items } = useCart();
@@ -13,13 +15,7 @@ const EbookCard = ({ ebook }: { ebook: Ebook }) => {
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addItem({
-      id: ebook.id,
-      title: ebook.title,
-      author: ebook.author,
-      price: ebook.price,
-      cover_url: ebook.cover_url,
-    });
+    addItem({ id: ebook.id, title: ebook.title, author: ebook.author, price: ebook.price, cover_url: ebook.cover_url || "" });
     toast.success(`"${ebook.title}" added to cart`);
   };
 
@@ -35,21 +31,11 @@ const EbookCard = ({ ebook }: { ebook: Ebook }) => {
         </div>
         <CardContent className="p-4 space-y-2">
           <p className="text-xs font-medium text-accent uppercase tracking-wider">{ebook.category}</p>
-          <h3 className="font-display font-semibold text-base leading-tight line-clamp-2 group-hover:text-accent transition-colors">
-            {ebook.title}
-          </h3>
+          <h3 className="font-display font-semibold text-base leading-tight line-clamp-2 group-hover:text-accent transition-colors">{ebook.title}</h3>
           <p className="text-sm text-muted-foreground">{ebook.author}</p>
           <div className="flex items-center justify-between pt-2">
-            <span className="font-semibold text-lg">
-              ₦{(ebook.price / 100).toLocaleString()}
-            </span>
-            <Button
-              size="sm"
-              variant={inCart ? "secondary" : "default"}
-              onClick={handleAdd}
-              disabled={inCart}
-              className="gap-1"
-            >
+            <span className="font-semibold text-lg">₦{(ebook.price / 100).toLocaleString()}</span>
+            <Button size="sm" variant={inCart ? "secondary" : "default"} onClick={handleAdd} disabled={inCart} className="gap-1">
               <ShoppingCart className="h-3.5 w-3.5" />
               {inCart ? "Added" : "Add"}
             </Button>

@@ -1,19 +1,22 @@
 import { Link, useLocation } from "react-router-dom";
-import { Book, ShoppingCart, User, Menu, X, LogOut } from "lucide-react";
+import { Book, ShoppingCart, User, Menu, X, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useCart } from "@/hooks/useCart";
+import { useAuth } from "@/hooks/useAuth";
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const { items } = useCart();
+  const { user, isAdmin, signOut } = useAuth();
   const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
   const navLinks = [
     { to: "/", label: "Home" },
     { to: "/browse", label: "Browse" },
-    { to: "/my-library", label: "My Library" },
+    ...(user ? [{ to: "/my-library", label: "My Library" }] : []),
+    ...(isAdmin ? [{ to: "/admin", label: "Admin" }] : []),
   ];
 
   return (
@@ -50,17 +53,18 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 )}
               </Button>
             </Link>
-            <Link to="/auth">
-              <Button variant="ghost" size="icon">
-                <User className="h-5 w-5" />
+            {user ? (
+              <Button variant="ghost" size="icon" onClick={signOut} title="Sign out">
+                <LogOut className="h-5 w-5" />
               </Button>
-            </Link>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={() => setMobileOpen(!mobileOpen)}
-            >
+            ) : (
+              <Link to="/auth">
+                <Button variant="ghost" size="icon">
+                  <User className="h-5 w-5" />
+                </Button>
+              </Link>
+            )}
+            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
               {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           </div>
@@ -69,15 +73,15 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         {mobileOpen && (
           <div className="md:hidden border-t bg-background px-4 py-3 space-y-2">
             {navLinks.map((l) => (
-              <Link
-                key={l.to}
-                to={l.to}
-                onClick={() => setMobileOpen(false)}
-                className="block py-2 text-sm font-medium text-muted-foreground hover:text-accent"
-              >
+              <Link key={l.to} to={l.to} onClick={() => setMobileOpen(false)} className="block py-2 text-sm font-medium text-muted-foreground hover:text-accent">
                 {l.label}
               </Link>
             ))}
+            {user && (
+              <button onClick={() => { signOut(); setMobileOpen(false); }} className="block py-2 text-sm font-medium text-destructive">
+                Sign Out
+              </button>
+            )}
           </div>
         )}
       </header>
@@ -92,9 +96,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 <Book className="h-6 w-6 text-accent" />
                 <span className="font-display text-lg font-bold">ELibrary</span>
               </div>
-              <p className="text-sm text-primary-foreground/70">
-                Your Christian Digital Library — Inspiring faith through the written word.
-              </p>
+              <p className="text-sm text-primary-foreground/70">Your Christian Digital Library — Inspiring faith through the written word.</p>
             </div>
             <div>
               <h4 className="font-display font-semibold mb-3">Quick Links</h4>
@@ -106,10 +108,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <div>
               <h4 className="font-display font-semibold mb-3">Categories</h4>
               <div className="space-y-2 text-sm text-primary-foreground/70">
-                <p>Devotionals</p>
-                <p>Bible Study</p>
-                <p>Christian Fiction</p>
-                <p>Children</p>
+                <p>Devotionals</p><p>Bible Study</p><p>Christian Fiction</p><p>Children</p>
               </div>
             </div>
           </div>
