@@ -250,11 +250,30 @@ const Downloads = () => {
                 <h3 className="font-display font-semibold">{ebook.title}</h3>
                 <p className="text-sm text-muted-foreground">{ebook.author}</p>
                 {ebook.download_url ? (
-                  <a href={ebook.download_url} target="_blank" rel="noopener noreferrer">
-                    <Button size="sm" className="w-full gap-1 bg-accent text-accent-foreground hover:bg-accent/90">
-                      <Download className="h-4 w-4" /> Download
-                    </Button>
-                  </a>
+                  <Button
+                    size="sm"
+                    className="w-full gap-1 bg-accent text-accent-foreground hover:bg-accent/90"
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(ebook.download_url!);
+                        if (!response.ok) throw new Error("download_failed");
+
+                        const blob = await response.blob();
+                        const objectUrl = URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.href = objectUrl;
+                        link.download = `${ebook.title.replace(/[^a-z0-9]/gi, "_")}.pdf`;
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                        URL.revokeObjectURL(objectUrl);
+                      } catch {
+                        window.open(ebook.download_url!, "_blank", "noopener,noreferrer");
+                      }
+                    }}
+                  >
+                    <Download className="h-4 w-4" /> Download
+                  </Button>
                 ) : (
                   <p className="text-xs text-muted-foreground">Download not available</p>
                 )}
