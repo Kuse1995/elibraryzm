@@ -26,18 +26,24 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Find the completed order matching reference (use ilike to handle pipe suffix)
+    // Find order by reference (supports pipe suffix), then validate completion separately
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .select("id, status, guest_email, user_id, items")
       .ilike("payment_reference", `${reference}%`)
-      .eq("status", "completed")
-      .single();
+      .maybeSingle();
 
-    if (orderError || !order) {
+    if (orderError) {
       return new Response(
-        JSON.stringify({ error: "Order not found or not yet completed. Please try again shortly." }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Failed to find order. Please try again." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!order || order.status !== "completed") {
+      return new Response(
+        JSON.stringify({ ebooks: [], pending: true, message: "Order not found or not yet completed. Please try again shortly." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
