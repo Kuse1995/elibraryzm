@@ -4,11 +4,13 @@ import { CheckCircle, XCircle, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useCart } from "@/hooks/useCart";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
 const PaymentVerify = () => {
   const [searchParams] = useSearchParams();
   const { clearCart } = useCart();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [processed, setProcessed] = useState(false);
   const [resolvedStatus, setResolvedStatus] = useState<string | null>(null);
@@ -60,10 +62,11 @@ const PaymentVerify = () => {
     if (isSuccess && !processed) {
       clearCart();
       setProcessed(true);
-      const timer = setTimeout(() => navigate("/my-library"), 2000);
+      const destination = user ? "/my-library" : "/browse";
+      const timer = setTimeout(() => navigate(destination), 2500);
       return () => clearTimeout(timer);
     }
-  }, [isSuccess, processed, clearCart, navigate]);
+  }, [isSuccess, processed, clearCart, navigate, user]);
 
   const handleManualCheck = async () => {
     setChecking(true);
