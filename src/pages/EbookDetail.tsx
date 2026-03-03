@@ -1,14 +1,23 @@
-import { useParams, Link } from "react-router-dom";
+import { useState } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, ArrowLeft, BookOpen } from "lucide-react";
-import { useCart } from "@/hooks/useCart";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, BookOpen, Loader2, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const EbookDetail = () => {
   const { id } = useParams();
-  const { addItem, items } = useCart();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"mtn" | "airtel">("mtn");
+  const [loading, setLoading] = useState(false);
 
   const { data: ebook, isLoading } = useQuery({
     queryKey: ["ebook", id],
@@ -31,11 +40,46 @@ const EbookDetail = () => {
     );
   }
 
-  const inCart = items.some((i) => i.id === ebook.id);
+  const handleBuyNow = async () => {
+    const buyerEmail = user?.email || email;
+    if (!buyerEmail) {
+      toast.error("Please enter your email address");
+      return;
+    }
+    if (!phone || phone.length < 10) {
+      toast.error("Please enter a valid phone number");
+      return;
+    }
 
-  const handleAdd = () => {
-    addItem({ id: ebook.id, title: ebook.title, author: ebook.author, price: ebook.price, cover_url: ebook.cover_url || "" });
-    toast.success(`"${ebook.title}" added to cart`);
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("initiate-payment", {
+        body: {
+          items: [{ id: ebook.id }],
+          email: buyerEmail,
+          userId: user?.id || null,
+          paymentMethod,
+          phone,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        toast.error(data.error);
+        setLoading(false);
+        return;
+      }
+
+      const params = new URLSearchParams({
+        status: data.status || "pending",
+        reference: data.reference || "",
+      });
+      navigate(`/payment-verify?${params.toString()}`);
+    } catch (err: any) {
+      toast.error(err.message || "Payment failed. Please try again.");
+      setLoading(false);
+    }
   };
 
   return (
@@ -59,12 +103,78 @@ const EbookDetail = () => {
           </div>
           <div className="text-3xl font-bold text-accent">K{(ebook.price / 100).toLocaleString()}</div>
           <p className="text-muted-foreground leading-relaxed">{ebook.description}</p>
-          <div className="flex gap-3">
-            <Button size="lg" onClick={handleAdd} disabled={inCart} className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">
-              <ShoppingCart className="h-5 w-5" />
-              {inCart ? "Already in Cart" : "Add to Cart"}
+
+          {/* Buy Now Form */}
+          <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
+            <h3 className="font-semibold">Buy Now</h3>
+
+            {!user && (
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="0977123456"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Payment Method</Label>
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant={paymentMethod === "mtn" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPaymentMethod("mtn")}
+                  className={paymentMethod === "mtn" ? "bg-yellow-500 hover:bg-yellow-600 text-black" : ""}
+                >
+                  MTN
+                </Button>
+                <Button
+                  type="button"
+                  variant={paymentMethod === "airtel" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPaymentMethod("airtel")}
+                  className={paymentMethod === "airtel" ? "bg-red-600 hover:bg-red-700 text-white" : ""}
+                >
+                  Airtel
+                </Button>
+              </div>
+            </div>
+
+            <Button
+              size="lg"
+              className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+              onClick={handleBuyNow}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  Processing...
+                </>
+              ) : (
+                `Buy Now — K${(ebook.price / 100).toLocaleString()}`
+              )}
             </Button>
-            {inCart && <Link to="/cart"><Button size="lg" variant="outline">View Cart</Button></Link>}
           </div>
         </div>
       </div>

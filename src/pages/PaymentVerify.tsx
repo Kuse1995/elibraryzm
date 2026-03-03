@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { CheckCircle, XCircle, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 const PaymentVerify = () => {
   const [searchParams] = useSearchParams();
   const { clearCart } = useCart();
+  const navigate = useNavigate();
   const [processed, setProcessed] = useState(false);
   const [resolvedStatus, setResolvedStatus] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
@@ -24,12 +25,19 @@ const PaymentVerify = () => {
 
   const checkOrderStatus = useCallback(async () => {
     if (!reference) return null;
-    const { data } = await supabase
-      .from("orders")
-      .select("status")
-      .ilike("payment_reference", `${reference}%`)
-      .maybeSingle();
-    return data?.status || null;
+    try {
+      const { data, error } = await supabase.functions.invoke("check-payment-status", {
+        body: { reference },
+      });
+      if (error) {
+        console.error("Status check error:", error);
+        return null;
+      }
+      return data?.status || null;
+    } catch (e) {
+      console.error("Status check failed:", e);
+      return null;
+    }
   }, [reference]);
 
   // Poll when pending
@@ -47,13 +55,15 @@ const PaymentVerify = () => {
     return () => clearInterval(interval);
   }, [isPending, reference, checkOrderStatus]);
 
-  // Clear cart on success
+  // Clear cart on success and auto-redirect
   useEffect(() => {
     if (isSuccess && !processed) {
       clearCart();
       setProcessed(true);
+      const timer = setTimeout(() => navigate("/my-library"), 2000);
+      return () => clearTimeout(timer);
     }
-  }, [isSuccess, processed, clearCart]);
+  }, [isSuccess, processed, clearCart, navigate]);
 
   const handleManualCheck = async () => {
     setChecking(true);
@@ -72,13 +82,9 @@ const PaymentVerify = () => {
               <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
               <h1 className="font-display text-2xl font-bold">Payment Successful!</h1>
               <p className="text-muted-foreground">
-                Your ebooks are now available. Check your email or visit My Library.
+                Redirecting to your library...
               </p>
               <p className="text-sm text-muted-foreground">Reference: {reference}</p>
-              <div className="flex gap-3 justify-center">
-                <Link to="/my-library"><Button className="bg-accent text-accent-foreground hover:bg-accent/90">Go to My Library</Button></Link>
-                <Link to="/browse"><Button variant="outline">Continue Shopping</Button></Link>
-              </div>
             </>
           )}
 
@@ -90,7 +96,7 @@ const PaymentVerify = () => {
                 {errorMessage || "Something went wrong with your payment. Please try again."}
               </p>
               {reference && <p className="text-sm text-muted-foreground">Reference: {reference}</p>}
-              <Link to="/cart"><Button className="bg-accent text-accent-foreground hover:bg-accent/90">Back to Cart</Button></Link>
+              <Link to="/browse"><Button className="bg-accent text-accent-foreground hover:bg-accent/90">Browse Ebooks</Button></Link>
             </>
           )}
 
