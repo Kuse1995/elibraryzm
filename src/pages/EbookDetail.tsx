@@ -3,7 +3,8 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, BookOpen, Loader2, Phone } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowLeft, BookOpen, Loader2, Phone, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +19,7 @@ const EbookDetail = () => {
   const [email, setEmail] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"mtn" | "airtel">("mtn");
   const [loading, setLoading] = useState(false);
+  const [includeUpsell, setIncludeUpsell] = useState(false);
 
   const { data: ebook, isLoading } = useQuery({
     queryKey: ["ebook", id],
@@ -27,6 +29,38 @@ const EbookDetail = () => {
       return data;
     },
     enabled: !!id,
+  });
+
+  // Fetch a suggested upsell ebook (same category first, fallback to any)
+  const { data: upsellEbook } = useQuery({
+    queryKey: ["upsell-ebook", id, ebook?.category],
+    queryFn: async () => {
+      // Try same category first
+      const { data: sameCat } = await supabase
+        .from("ebooks")
+        .select("id, title, author, price, cover_url, category")
+        .eq("category", ebook!.category)
+        .neq("id", id!)
+        .limit(5);
+
+      if (sameCat && sameCat.length > 0) {
+        return sameCat[Math.floor(Math.random() * sameCat.length)];
+      }
+
+      // Fallback: any other ebook
+      const { data: anyBook } = await supabase
+        .from("ebooks")
+        .select("id, title, author, price, cover_url, category")
+        .neq("id", id!)
+        .limit(5);
+
+      if (anyBook && anyBook.length > 0) {
+        return anyBook[Math.floor(Math.random() * anyBook.length)];
+      }
+
+      return null;
+    },
+    enabled: !!ebook,
   });
 
   if (isLoading) return <div className="container py-20 text-center text-muted-foreground">Loading...</div>;
@@ -39,6 +73,11 @@ const EbookDetail = () => {
       </div>
     );
   }
+
+  const upsellPrice = upsellEbook ? Math.floor(upsellEbook.price / 2) : 0;
+  const displayTotal = includeUpsell && upsellEbook
+    ? ebook.price + upsellPrice
+    : ebook.price;
 
   const handleBuyNow = async () => {
     const buyerEmail = user?.email || email;
@@ -53,9 +92,13 @@ const EbookDetail = () => {
 
     setLoading(true);
     try {
+      const items = [{ id: ebook.id }];
+      const discountItems = includeUpsell && upsellEbook ? [{ id: upsellEbook.id }] : [];
+
       const { data, error } = await supabase.functions.invoke("initiate-payment", {
         body: {
-          items: [{ id: ebook.id }],
+          items,
+          discountItems,
           email: buyerEmail,
           userId: user?.id || null,
           paymentMethod,
@@ -103,6 +146,48 @@ const EbookDetail = () => {
           </div>
           <div className="text-3xl font-bold text-accent">K{(ebook.price / 100).toLocaleString()}</div>
           <p className="text-muted-foreground leading-relaxed">{ebook.description}</p>
+
+          {/* Upsell Offer */}
+          {upsellEbook && (
+            <div className="border border-accent/30 rounded-lg p-4 bg-accent/5 space-y-3">
+              <div className="flex items-center gap-2 text-accent font-semibold">
+                <Gift className="h-5 w-5" />
+                <span>Special Offer — 50% Off!</span>
+              </div>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <Checkbox
+                  checked={includeUpsell}
+                  onCheckedChange={(checked) => setIncludeUpsell(!!checked)}
+                  className="mt-1"
+                />
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  {upsellEbook.cover_url ? (
+                    <img
+                      src={upsellEbook.cover_url}
+                      alt={upsellEbook.title}
+                      className="w-12 h-16 object-cover rounded flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-12 h-16 bg-secondary rounded flex items-center justify-center flex-shrink-0">
+                      <BookOpen className="h-5 w-5 text-muted-foreground/30" />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">Add "{upsellEbook.title}"</p>
+                    <p className="text-sm text-muted-foreground">by {upsellEbook.author}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-sm text-muted-foreground line-through">
+                        K{(upsellEbook.price / 100).toLocaleString()}
+                      </span>
+                      <span className="text-sm font-bold text-accent">
+                        K{(upsellPrice / 100).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </label>
+            </div>
+          )}
 
           {/* Buy Now Form */}
           <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
@@ -172,9 +257,15 @@ const EbookDetail = () => {
                   Processing...
                 </>
               ) : (
-                `Buy Now — K${(ebook.price / 100).toLocaleString()}`
+                `Buy Now — K${(displayTotal / 100).toLocaleString()}`
               )}
             </Button>
+
+            {includeUpsell && upsellEbook && (
+              <p className="text-xs text-muted-foreground text-center">
+                Includes "{upsellEbook.title}" at 50% off
+              </p>
+            )}
           </div>
         </div>
       </div>

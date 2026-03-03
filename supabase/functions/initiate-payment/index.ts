@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();
-    const { items, email, userId, paymentMethod, phone } = body;
+    const { items, discountItems, email, userId, paymentMethod, phone } = body;
 
     if (!items?.length || !email || !phone || !paymentMethod) {
       return new Response(
@@ -40,12 +40,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Calculate total from ebook prices (server-side verification)
-    const ebookIds = items.map((i: any) => i.id);
+    // Collect all ebook IDs (full price + discounted)
+    const fullPriceIds: string[] = items.map((i: any) => i.id);
+    const discountIds: string[] = (discountItems || []).map((i: any) => i.id);
+    const allIds = [...new Set([...fullPriceIds, ...discountIds])];
+
     const { data: ebooks, error: ebookError } = await supabase
       .from("ebooks")
       .select("id, price, title")
-      .in("id", ebookIds);
+      .in("id", allIds);
 
     if (ebookError || !ebooks?.length) {
       return new Response(
@@ -54,7 +57,28 @@ Deno.serve(async (req) => {
       );
     }
 
-    const total = ebooks.reduce((sum: number, e: any) => sum + e.price, 0);
+    const ebookMap = new Map(ebooks.map((e: any) => [e.id, e]));
+
+    // Calculate total: full price items + 50% discount items
+    let total = 0;
+    const orderItems: any[] = [];
+
+    for (const id of fullPriceIds) {
+      const e = ebookMap.get(id);
+      if (!e) continue;
+      total += e.price;
+      orderItems.push({ id: e.id, title: e.title, price: e.price, discounted: false });
+    }
+
+    for (const id of discountIds) {
+      if (fullPriceIds.includes(id)) continue; // Don't double-count
+      const e = ebookMap.get(id);
+      if (!e) continue;
+      const discountedPrice = Math.floor(e.price / 2);
+      total += discountedPrice;
+      orderItems.push({ id: e.id, title: e.title, price: discountedPrice, originalPrice: e.price, discounted: true });
+    }
+
     const totalKwacha = (total / 100).toFixed(2);
     const reference = `elib-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
 
@@ -67,7 +91,7 @@ Deno.serve(async (req) => {
         total,
         status: "pending",
         payment_reference: reference,
-        items: ebooks.map((e: any) => ({ id: e.id, title: e.title, price: e.price })),
+        items: orderItems,
       })
       .select()
       .single();
@@ -80,13 +104,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Insert order items
-    const orderItems = ebooks.map((e: any) => ({
+    // Insert order items (each ebook at actual price paid)
+    const dbOrderItems = orderItems.map((item: any) => ({
       order_id: order.id,
-      ebook_id: e.id,
-      price: e.price,
+      ebook_id: item.id,
+      price: item.price,
     }));
-    await supabase.from("order_items").insert(orderItems);
+    await supabase.from("order_items").insert(dbOrderItems);
 
     // Send mobile money collection request to Lenco
     const lencoPayload = {
@@ -95,7 +119,7 @@ Deno.serve(async (req) => {
       currency: "ZMW",
       bearer: "merchant",
       phone,
-      operator: paymentMethod, // "mtn" or "airtel"
+      operator: paymentMethod,
       country: "ZM",
     };
 
@@ -125,13 +149,11 @@ Deno.serve(async (req) => {
     const paymentStatus = lencoData.data?.status;
     const lencoReference = lencoData.data?.lencoReference;
 
-    // Update order with lenco reference
     await supabase
       .from("orders")
       .update({ payment_reference: `${reference}|${lencoReference || ""}` })
       .eq("id", order.id);
 
-    // Handle statuses
     if (paymentStatus === "successful") {
       await supabase.from("orders").update({ status: "completed" }).eq("id", order.id);
       return new Response(
@@ -154,7 +176,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Pending or other
     return new Response(
       JSON.stringify({
         status: paymentStatus || "pending",
