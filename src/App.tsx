@@ -37,6 +37,7 @@ const App = () => (
                 <Route path="/my-library" element={<MyLibrary />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/payment-verify" element={<PaymentVerify />} />
+                <Route path="/guest-downloads" element={<GuestDownloads />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Layout>

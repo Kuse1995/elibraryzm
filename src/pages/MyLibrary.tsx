@@ -18,7 +18,21 @@ const MyLibrary = () => {
         .eq("order.user_id", user!.id)
         .eq("order.status", "completed");
       if (error) throw error;
-      return data;
+
+      // Generate signed URLs for private ebook files
+      const withSignedUrls = await Promise.all(
+        (data || []).map(async (item: any) => {
+          if (item.ebook?.file_url) {
+            const filePath = item.ebook.file_url.replace(/^\//, "");
+            const { data: urlData } = await supabase.storage
+              .from("ebook-files")
+              .createSignedUrl(filePath, 900);
+            return { ...item, ebook: { ...item.ebook, signed_url: urlData?.signedUrl || null } };
+          }
+          return { ...item, ebook: { ...item.ebook, signed_url: null } };
+        })
+      );
+      return withSignedUrls;
     },
     enabled: !!user,
   });
