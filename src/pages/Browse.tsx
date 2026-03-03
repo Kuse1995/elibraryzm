@@ -4,20 +4,27 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import EbookCard from "@/components/EbookCard";
-import { sampleEbooks } from "@/lib/sample-data";
 import { CATEGORIES } from "@/lib/types";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const Browse = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeCategory = searchParams.get("category") || "";
   const [search, setSearch] = useState("");
 
-  const filtered = sampleEbooks.filter((e) => {
+  const { data: ebooks = [], isLoading } = useQuery({
+    queryKey: ["ebooks"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("ebooks").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const filtered = ebooks.filter((e) => {
     const matchCat = !activeCategory || e.category === activeCategory;
-    const matchSearch =
-      !search ||
-      e.title.toLowerCase().includes(search.toLowerCase()) ||
-      e.author.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search || e.title.toLowerCase().includes(search.toLowerCase()) || e.author.toLowerCase().includes(search.toLowerCase());
     return matchCat && matchSearch;
   });
 
@@ -29,43 +36,23 @@ const Browse = () => {
       <div className="flex flex-col md:flex-row gap-4 mb-8">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by title or author..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
+          <Input placeholder="Search by title or author..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant={!activeCategory ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSearchParams({})}
-          >
-            All
-          </Button>
+          <Button variant={!activeCategory ? "default" : "outline"} size="sm" onClick={() => setSearchParams({})}>All</Button>
           {CATEGORIES.map((cat) => (
-            <Button
-              key={cat}
-              variant={activeCategory === cat ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSearchParams({ category: cat })}
-            >
-              {cat}
-            </Button>
+            <Button key={cat} variant={activeCategory === cat ? "default" : "outline"} size="sm" onClick={() => setSearchParams({ category: cat })}>{cat}</Button>
           ))}
         </div>
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <p className="text-lg">No ebooks found matching your criteria.</p>
-        </div>
+      {isLoading ? (
+        <div className="text-center py-16 text-muted-foreground">Loading ebooks...</div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground"><p className="text-lg">No ebooks found matching your criteria.</p></div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {filtered.map((ebook) => (
-            <EbookCard key={ebook.id} ebook={ebook} />
-          ))}
+          {filtered.map((ebook) => (<EbookCard key={ebook.id} ebook={ebook} />))}
         </div>
       )}
     </div>

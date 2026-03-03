@@ -2,11 +2,23 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Book, ArrowRight, Sparkles } from "lucide-react";
 import EbookCard from "@/components/EbookCard";
-import { sampleEbooks } from "@/lib/sample-data";
 import { CATEGORIES } from "@/lib/types";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
-  const featured = sampleEbooks.filter((e) => e.featured);
+  const { data: featured = [] } = useQuery({
+    queryKey: ["ebooks", "featured"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ebooks")
+        .select("*")
+        .eq("featured", true)
+        .limit(4);
+      if (error) throw error;
+      return data;
+    },
+  });
 
   return (
     <div>
@@ -46,16 +58,10 @@ const Index = () => {
 
       {/* Categories */}
       <section className="container py-16">
-        <h2 className="font-display text-2xl md:text-3xl font-bold text-center mb-8">
-          Explore by Category
-        </h2>
+        <h2 className="font-display text-2xl md:text-3xl font-bold text-center mb-8">Explore by Category</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {CATEGORIES.map((cat) => (
-            <Link
-              key={cat}
-              to={`/browse?category=${encodeURIComponent(cat)}`}
-              className="flex flex-col items-center gap-3 p-6 rounded-lg bg-card border hover:border-accent hover:shadow-md transition-all text-center group"
-            >
+            <Link key={cat} to={`/browse?category=${encodeURIComponent(cat)}`} className="flex flex-col items-center gap-3 p-6 rounded-lg bg-card border hover:border-accent hover:shadow-md transition-all text-center group">
               <Book className="h-8 w-8 text-muted-foreground group-hover:text-accent transition-colors" />
               <span className="font-medium text-sm">{cat}</span>
             </Link>
@@ -64,38 +70,28 @@ const Index = () => {
       </section>
 
       {/* Featured */}
-      <section className="bg-secondary/50 py-16">
-        <div className="container">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="font-display text-2xl md:text-3xl font-bold">Featured Ebooks</h2>
-            <Link to="/browse">
-              <Button variant="ghost" className="gap-1 text-accent hover:text-accent/80">
-                View All <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+      {featured.length > 0 && (
+        <section className="bg-secondary/50 py-16">
+          <div className="container">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="font-display text-2xl md:text-3xl font-bold">Featured Ebooks</h2>
+              <Link to="/browse"><Button variant="ghost" className="gap-1 text-accent hover:text-accent/80">View All <ArrowRight className="h-4 w-4" /></Button></Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featured.map((ebook) => (
+                <EbookCard key={ebook.id} ebook={ebook} />
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featured.map((ebook) => (
-              <EbookCard key={ebook.id} ebook={ebook} />
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="container py-16 text-center">
         <div className="max-w-2xl mx-auto">
-          <h2 className="font-display text-2xl md:text-3xl font-bold mb-4">
-            Start Your Spiritual Reading Journey
-          </h2>
-          <p className="text-muted-foreground mb-6">
-            Create a free account to track your purchases, build your library, and get personalized recommendations.
-          </p>
-          <Link to="/auth">
-            <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 px-8">
-              Get Started Today
-            </Button>
-          </Link>
+          <h2 className="font-display text-2xl md:text-3xl font-bold mb-4">Start Your Spiritual Reading Journey</h2>
+          <p className="text-muted-foreground mb-6">Create a free account to track your purchases, build your library, and get personalized recommendations.</p>
+          <Link to="/auth"><Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 px-8">Get Started Today</Button></Link>
         </div>
       </section>
     </div>
