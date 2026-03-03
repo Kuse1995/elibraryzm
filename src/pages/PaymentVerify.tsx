@@ -82,9 +82,10 @@ const PaymentVerify = () => {
               <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
               <h1 className="font-display text-2xl font-bold">Payment Successful!</h1>
               <p className="text-muted-foreground">
-                Redirecting to your library...
+                Thank you for your purchase! Redirecting to your downloads...
               </p>
               <p className="text-sm text-muted-foreground">Reference: {reference}</p>
+              <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
             </>
           )}
 
