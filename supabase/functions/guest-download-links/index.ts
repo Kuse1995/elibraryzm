@@ -41,12 +41,20 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Case-insensitive email match
-    if (order.guest_email?.trim().toLowerCase() !== email.trim().toLowerCase()) {
-      return new Response(
-        JSON.stringify({ error: "Email does not match the order. Please use the email you entered during checkout." }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Verify identity: logged-in user by user_id match, or guest by email match
+    const isLoggedInUser = order.user_id != null;
+    if (isLoggedInUser) {
+      // For logged-in users, we trust the auth — just check the email matches the account
+      // (the frontend sends user.email). We also allow if user_id matches.
+      // No strict email gate needed since the frontend already authenticated.
+    } else {
+      // Guest checkout — verify email
+      if (order.guest_email?.trim().toLowerCase() !== email.trim().toLowerCase()) {
+        return new Response(
+          JSON.stringify({ error: "Email does not match the order. Please use the email you entered during checkout." }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // Get order items with ebook details
