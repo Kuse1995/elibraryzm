@@ -76,8 +76,8 @@ const MyLibrary = () => {
               <CardContent className="p-4 space-y-2">
                 <h3 className="font-display font-semibold">{item.ebook?.title}</h3>
                 <p className="text-sm text-muted-foreground">{item.ebook?.author}</p>
-                {item.ebook?.file_url && (
-                  <a href={item.ebook.file_url} target="_blank" rel="noopener noreferrer">
+                {item.ebook?.signed_url && (
+                  <a href={item.ebook.signed_url} target="_blank" rel="noopener noreferrer">
                     <Button size="sm" className="w-full gap-1 bg-accent text-accent-foreground hover:bg-accent/90">
                       <Download className="h-4 w-4" /> Download
                     </Button>
