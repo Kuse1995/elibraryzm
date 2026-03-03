@@ -26,11 +26,11 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Find the completed order matching reference + guest email
+    // Find the completed order matching reference (use ilike to handle pipe suffix)
     const { data: order, error: orderError } = await supabase
       .from("orders")
-      .select("id, status, guest_email, items")
-      .eq("payment_reference", reference)
+      .select("id, status, guest_email, user_id, items")
+      .ilike("payment_reference", `${reference}%`)
       .eq("status", "completed")
       .single();
 
