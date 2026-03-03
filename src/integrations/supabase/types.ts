@@ -14,16 +14,186 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      ebooks: {
+        Row: {
+          author: string
+          category: string
+          cover_url: string | null
+          created_at: string
+          description: string
+          featured: boolean
+          file_url: string | null
+          id: string
+          price: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author: string
+          category?: string
+          cover_url?: string | null
+          created_at?: string
+          description?: string
+          featured?: boolean
+          file_url?: string | null
+          id?: string
+          price?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author?: string
+          category?: string
+          cover_url?: string | null
+          created_at?: string
+          description?: string
+          featured?: boolean
+          file_url?: string | null
+          id?: string
+          price?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      order_items: {
+        Row: {
+          created_at: string
+          download_count: number
+          ebook_id: string | null
+          id: string
+          order_id: string
+          price: number
+        }
+        Insert: {
+          created_at?: string
+          download_count?: number
+          ebook_id?: string | null
+          id?: string
+          order_id: string
+          price?: number
+        }
+        Update: {
+          created_at?: string
+          download_count?: number
+          ebook_id?: string | null
+          id?: string
+          order_id?: string
+          price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_ebook_id_fkey"
+            columns: ["ebook_id"]
+            isOneToOne: false
+            referencedRelation: "ebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          guest_email: string | null
+          id: string
+          items: Json
+          payment_reference: string | null
+          status: string
+          total: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          guest_email?: string | null
+          id?: string
+          items?: Json
+          payment_reference?: string | null
+          status?: string
+          total?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          guest_email?: string | null
+          id?: string
+          items?: Json
+          payment_reference?: string | null
+          status?: string
+          total?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +320,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
