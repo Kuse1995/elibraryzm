@@ -1,0 +1,125 @@
+import { Link, useLocation } from "react-router-dom";
+import { Book, ShoppingCart, User, Menu, X, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { useCart } from "@/hooks/useCart";
+
+const Layout = ({ children }: { children: React.ReactNode }) => {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
+  const { items } = useCart();
+  const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
+
+  const navLinks = [
+    { to: "/", label: "Home" },
+    { to: "/browse", label: "Browse" },
+    { to: "/my-library", label: "My Library" },
+  ];
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-16 items-center justify-between">
+          <Link to="/" className="flex items-center gap-2">
+            <Book className="h-7 w-7 text-accent" />
+            <span className="font-display text-xl font-bold text-primary">ELibrary</span>
+          </Link>
+
+          <nav className="hidden md:flex items-center gap-6">
+            {navLinks.map((l) => (
+              <Link
+                key={l.to}
+                to={l.to}
+                className={`text-sm font-medium transition-colors hover:text-accent ${
+                  location.pathname === l.to ? "text-accent" : "text-muted-foreground"
+                }`}
+              >
+                {l.label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-2">
+            <Link to="/cart">
+              <Button variant="ghost" size="icon" className="relative">
+                <ShoppingCart className="h-5 w-5" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-accent text-accent-foreground text-xs flex items-center justify-center font-semibold">
+                    {cartCount}
+                  </span>
+                )}
+              </Button>
+            </Link>
+            <Link to="/auth">
+              <Button variant="ghost" size="icon">
+                <User className="h-5 w-5" />
+              </Button>
+            </Link>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setMobileOpen(!mobileOpen)}
+            >
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+          </div>
+        </div>
+
+        {mobileOpen && (
+          <div className="md:hidden border-t bg-background px-4 py-3 space-y-2">
+            {navLinks.map((l) => (
+              <Link
+                key={l.to}
+                to={l.to}
+                onClick={() => setMobileOpen(false)}
+                className="block py-2 text-sm font-medium text-muted-foreground hover:text-accent"
+              >
+                {l.label}
+              </Link>
+            ))}
+          </div>
+        )}
+      </header>
+
+      <main className="flex-1">{children}</main>
+
+      <footer className="border-t bg-primary text-primary-foreground">
+        <div className="container py-10">
+          <div className="grid gap-8 md:grid-cols-3">
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Book className="h-6 w-6 text-accent" />
+                <span className="font-display text-lg font-bold">ELibrary</span>
+              </div>
+              <p className="text-sm text-primary-foreground/70">
+                Your Christian Digital Library — Inspiring faith through the written word.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-display font-semibold mb-3">Quick Links</h4>
+              <div className="space-y-2 text-sm text-primary-foreground/70">
+                <Link to="/browse" className="block hover:text-accent">Browse Ebooks</Link>
+                <Link to="/auth" className="block hover:text-accent">Sign In</Link>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-display font-semibold mb-3">Categories</h4>
+              <div className="space-y-2 text-sm text-primary-foreground/70">
+                <p>Devotionals</p>
+                <p>Bible Study</p>
+                <p>Christian Fiction</p>
+                <p>Children</p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-8 pt-6 border-t border-primary-foreground/20 text-center text-sm text-primary-foreground/50">
+            © {new Date().getFullYear()} ELibrary. All rights reserved.
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default Layout;
