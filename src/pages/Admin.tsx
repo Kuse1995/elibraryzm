@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Pencil, Trash2, Plus, BookOpen, ShoppingBag, DollarSign, Shield } from "lucide-react";
+import { Pencil, Trash2, Plus, BookOpen, ShoppingBag, DollarSign, Shield, Users } from "lucide-react";
 import { CATEGORIES } from "@/lib/types";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -76,6 +76,34 @@ const Admin = () => {
     },
     enabled: isAdmin,
   });
+
+  // Derive customers from orders
+  const customers = useMemo(() => {
+    const customerMap = new Map<string, { email: string; orderCount: number; totalSpent: number; lastOrder: string }>();
+    orders.forEach((order) => {
+      const email = order.guest_email || "registered-user";
+      if (email === "registered-user" && !order.user_id) return;
+      const key = order.guest_email || order.user_id || "unknown";
+      const existing = customerMap.get(key);
+      const isCompleted = order.status === "completed";
+      if (existing) {
+        existing.orderCount += 1;
+        if (isCompleted) existing.totalSpent += order.total;
+        if (order.created_at > existing.lastOrder) {
+          existing.lastOrder = order.created_at;
+          if (order.guest_email) existing.email = order.guest_email;
+        }
+      } else {
+        customerMap.set(key, {
+          email: order.guest_email || `User ${order.user_id?.slice(0, 8)}...`,
+          orderCount: 1,
+          totalSpent: isCompleted ? order.total : 0,
+          lastOrder: order.created_at,
+        });
+      }
+    });
+    return Array.from(customerMap.values()).sort((a, b) => b.totalSpent - a.totalSpent);
+  }, [orders]);
 
   const addEbook = useMutation({
     mutationFn: async () => {
@@ -169,14 +197,16 @@ const Admin = () => {
     );
   }
 
-  const totalRevenue = orders.filter(o => o.status === "completed").reduce((sum, o) => sum + o.total, 0);
+  const completedOrders = orders.filter(o => o.status === "completed");
+  const totalRevenue = completedOrders.reduce((sum, o) => sum + o.total, 0);
+  const totalCustomers = customers.length;
 
   return (
     <div className="container py-10">
       <h1 className="font-display text-3xl font-bold mb-2">Admin Dashboard</h1>
       <p className="text-muted-foreground mb-8">Manage your ELibrary platform</p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
         <Card>
           <CardContent className="p-6 flex items-center gap-4">
             <div className="p-3 rounded-lg bg-accent/10"><BookOpen className="h-6 w-6 text-accent" /></div>
@@ -187,6 +217,12 @@ const Admin = () => {
           <CardContent className="p-6 flex items-center gap-4">
             <div className="p-3 rounded-lg bg-accent/10"><ShoppingBag className="h-6 w-6 text-accent" /></div>
             <div><p className="text-sm text-muted-foreground">Total Orders</p><p className="text-2xl font-bold">{orders.length}</p></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6 flex items-center gap-4">
+            <div className="p-3 rounded-lg bg-accent/10"><Users className="h-6 w-6 text-accent" /></div>
+            <div><p className="text-sm text-muted-foreground">Customers</p><p className="text-2xl font-bold">{totalCustomers}</p></div>
           </CardContent>
         </Card>
         <Card>
@@ -202,6 +238,7 @@ const Admin = () => {
           <TabsTrigger value="ebooks">Manage Ebooks</TabsTrigger>
           <TabsTrigger value="add">Add Ebook</TabsTrigger>
           <TabsTrigger value="orders">Orders</TabsTrigger>
+          <TabsTrigger value="customers">Customers</TabsTrigger>
         </TabsList>
 
         <TabsContent value="ebooks" className="mt-6">
@@ -309,6 +346,66 @@ const Admin = () => {
                 </TableBody>
               </Table>
             </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="customers" className="mt-6">
+          {customers.length === 0 ? (
+            <Card>
+              <CardContent className="p-10 text-center text-muted-foreground">
+                <Users className="h-12 w-12 mx-auto mb-3 text-muted-foreground/40" />
+                <p>No customers yet.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <Card>
+                  <CardContent className="p-4">
+                    <p className="text-sm text-muted-foreground">Total Customers</p>
+                    <p className="text-2xl font-bold">{customers.length}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <p className="text-sm text-muted-foreground">Avg. Spend per Customer</p>
+                    <p className="text-2xl font-bold">
+                      K{customers.length > 0 ? ((customers.reduce((s, c) => s + c.totalSpent, 0) / customers.length) / 100).toFixed(2) : "0"}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <p className="text-sm text-muted-foreground">Est. Monthly Earnings</p>
+                    <p className="text-2xl font-bold">
+                      K{(totalRevenue / 100).toLocaleString()}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+              <Card>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Orders</TableHead>
+                      <TableHead>Total Spent</TableHead>
+                      <TableHead>Last Purchase</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {customers.map((customer, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="font-medium">{customer.email}</TableCell>
+                        <TableCell>{customer.orderCount}</TableCell>
+                        <TableCell>K{(customer.totalSpent / 100).toLocaleString()}</TableCell>
+                        <TableCell>{new Date(customer.lastOrder).toLocaleDateString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Card>
+            </>
           )}
         </TabsContent>
       </Tabs>
