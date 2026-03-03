@@ -84,8 +84,9 @@ Deno.serve(async (req) => {
       const lencoData = await lencoRes.json();
       console.log("Lenco status check response:", JSON.stringify(lencoData));
 
-      // Check collection status from Lenco response
-      const collection = lencoData.data?.collections?.[0] || lencoData.data;
+      // Lenco returns data as an array of collections
+      const collections = Array.isArray(lencoData.data) ? lencoData.data : [lencoData.data];
+      const collection = collections.find((c: any) => c?.reference === originalRef);
       const lencoStatus = collection?.status;
 
       if (lencoStatus === "successful") {
