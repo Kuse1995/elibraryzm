@@ -1,13 +1,15 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Trash2, ShoppingCart, BookOpen, Loader2 } from "lucide-react";
+import { Trash2, ShoppingCart, BookOpen, Loader2, Smartphone, Ban } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
 const Cart = () => {
   const { items, removeItem, clearCart, total } = useCart();
@@ -15,19 +17,8 @@ const Cart = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [guestEmail, setGuestEmail] = useState("");
-
-  // Card fields
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardCvv, setCardCvv] = useState("");
-  const [cardExpiryMonth, setCardExpiryMonth] = useState("");
-  const [cardExpiryYear, setCardExpiryYear] = useState("");
-
-  // Billing fields
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [streetAddress, setStreetAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [postalCode, setPostalCode] = useState("");
+  const [phone, setPhone] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("mtn");
 
   const email = user?.email || guestEmail;
 
@@ -37,12 +28,12 @@ const Cart = () => {
       toast.error("Please enter your email address");
       return;
     }
-    if (!cardNumber || !cardCvv || !cardExpiryMonth || !cardExpiryYear) {
-      toast.error("Please fill in all card details");
+    if (!phone) {
+      toast.error("Please enter your mobile money phone number");
       return;
     }
-    if (!firstName || !lastName) {
-      toast.error("Please enter your first and last name");
+    if (paymentMethod === "bank") {
+      toast.info("Bank transfers are coming soon!");
       return;
     }
 
@@ -53,35 +44,29 @@ const Cart = () => {
           items: items.map((i) => ({ id: i.id })),
           email,
           userId: user?.id || null,
-          card: {
-            number: cardNumber,
-            cvv: cardCvv,
-            expiryMonth: cardExpiryMonth,
-            expiryYear: cardExpiryYear,
-          },
-          billing: {
-            firstName,
-            lastName,
-            streetAddress: streetAddress || "N/A",
-            city: city || "Lagos",
-            postalCode: postalCode || "100001",
-            country: "NG",
-          },
+          paymentMethod,
+          phone,
         },
       });
 
       if (error) throw new Error(error.message);
 
-      if (data.status === "3ds-redirect" && data.redirectUrl) {
-        // Redirect to 3DS authentication
-        window.location.href = data.redirectUrl;
-        return;
-      }
-
-      if (data.status === "success") {
+      if (data.status === "successful") {
         clearCart();
         toast.success("Payment successful!");
         navigate(`/payment-verify?status=successful&reference=${data.reference}`);
+        return;
+      }
+
+      if (data.status === "pay-offline") {
+        toast.info("Please check your phone and approve the payment to complete the transaction.");
+        navigate(`/payment-verify?status=pending&reference=${data.reference}`);
+        return;
+      }
+
+      if (data.status === "otp-required") {
+        toast.info("An OTP has been sent to your phone. Please complete payment.");
+        navigate(`/payment-verify?status=otp&reference=${data.reference}&lencoReference=${data.lencoReference}`);
         return;
       }
 
@@ -90,7 +75,6 @@ const Cart = () => {
         return;
       }
 
-      // Pending
       toast.info("Payment is being processed...");
       navigate(`/payment-verify?status=pending&reference=${data.reference}`);
     } catch (err: any) {
@@ -131,7 +115,7 @@ const Cart = () => {
                 <h3 className="font-semibold truncate">{item.title}</h3>
                 <p className="text-sm text-muted-foreground">{item.author}</p>
               </div>
-              <span className="font-semibold whitespace-nowrap">₦{(item.price / 100).toLocaleString()}</span>
+              <span className="font-semibold whitespace-nowrap">K{(item.price / 100).toLocaleString()}</span>
               <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)}>
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
@@ -144,7 +128,7 @@ const Cart = () => {
         <CardContent className="p-6 space-y-5">
           <div className="flex justify-between text-lg font-semibold">
             <span>Total</span>
-            <span className="text-accent">₦{(total / 100).toLocaleString()}</span>
+            <span className="text-accent">K{(total / 100).toLocaleString()}</span>
           </div>
 
           {!user && (
@@ -155,43 +139,67 @@ const Cart = () => {
           )}
 
           <div className="space-y-3">
-            <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Billing Details</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <Input placeholder="First Name *" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-              <Input placeholder="Last Name *" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-            </div>
-            <Input placeholder="Street Address" value={streetAddress} onChange={(e) => setStreetAddress(e.target.value)} />
-            <div className="grid grid-cols-2 gap-3">
-              <Input placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} />
-              <Input placeholder="Postal Code" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} />
-            </div>
-          </div>
+            <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Payment Method</h3>
+            <Tabs value={paymentMethod} onValueChange={setPaymentMethod}>
+              <TabsList className="w-full">
+                <TabsTrigger value="mtn" className="flex-1 gap-2">
+                  <Smartphone className="h-4 w-4" /> MTN MoMo
+                </TabsTrigger>
+                <TabsTrigger value="airtel" className="flex-1 gap-2">
+                  <Smartphone className="h-4 w-4" /> Airtel Money
+                </TabsTrigger>
+                <TabsTrigger value="bank" className="flex-1 gap-2" disabled>
+                  <Ban className="h-4 w-4" /> Bank Transfer
+                  <Badge variant="secondary" className="text-xs ml-1">Soon</Badge>
+                </TabsTrigger>
+              </TabsList>
 
-          <div className="space-y-3">
-            <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Card Details</h3>
-            <Input
-              placeholder="Card Number *"
-              value={cardNumber}
-              onChange={(e) => setCardNumber(e.target.value.replace(/[^\d\s]/g, ""))}
-              maxLength={19}
-            />
-            <div className="grid grid-cols-3 gap-3">
-              <Input placeholder="MM *" value={cardExpiryMonth} onChange={(e) => setCardExpiryMonth(e.target.value.replace(/\D/g, ""))} maxLength={2} />
-              <Input placeholder="YY *" value={cardExpiryYear} onChange={(e) => setCardExpiryYear(e.target.value.replace(/\D/g, ""))} maxLength={4} />
-              <Input placeholder="CVV *" type="password" value={cardCvv} onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, ""))} maxLength={4} />
-            </div>
+              <TabsContent value="mtn" className="mt-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">MTN Mobile Money Number</label>
+                  <Input
+                    type="tel"
+                    placeholder="e.g. 0971234567"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/[^\d+]/g, ""))}
+                    maxLength={15}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="airtel" className="mt-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Airtel Money Number</label>
+                  <Input
+                    type="tel"
+                    placeholder="e.g. 0971234567"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/[^\d+]/g, ""))}
+                    maxLength={15}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="bank" className="mt-4">
+                <div className="text-center py-6 text-muted-foreground">
+                  <Ban className="h-10 w-10 mx-auto mb-2 text-muted-foreground/40" />
+                  <p className="font-medium">Bank Transfer Coming Soon</p>
+                  <p className="text-sm">We're working on adding bank transfer support.</p>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
 
           <Button
             className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
             size="lg"
             onClick={handleCheckout}
-            disabled={loading}
+            disabled={loading || paymentMethod === "bank"}
           >
             {loading ? (
               <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Processing...</>
             ) : (
-              <>Pay ₦{(total / 100).toLocaleString()}</>
+              <>Pay K{(total / 100).toLocaleString()}</>
             )}
           </Button>
 

@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import * as jose from "https://deno.land/x/jose@v5.2.0/index.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,11 +24,18 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();
-    const { items, email, card, billing, userId } = body;
+    const { items, email, userId, paymentMethod, phone } = body;
 
-    if (!items?.length || !email || !card || !billing) {
+    if (!items?.length || !email || !phone || !paymentMethod) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields: items, email, card, billing" }),
+        JSON.stringify({ error: "Missing required fields: items, email, phone, paymentMethod" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!["mtn", "airtel"].includes(paymentMethod)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid payment method. Use 'mtn' or 'airtel'." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -49,7 +55,7 @@ Deno.serve(async (req) => {
     }
 
     const total = ebooks.reduce((sum: number, e: any) => sum + e.price, 0);
-    const totalNaira = (total / 100).toFixed(2);
+    const totalKwacha = (total / 100).toFixed(2);
     const reference = `elib-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
 
     // Create order in DB
@@ -82,82 +88,33 @@ Deno.serve(async (req) => {
     }));
     await supabase.from("order_items").insert(orderItems);
 
-    // Get Lenco encryption key
-    const encKeyRes = await fetch(`${LENCO_API_BASE}/encryption/key`, {
-      headers: { Authorization: `Bearer ${LENCO_TOKEN}`, Accept: "application/json" },
-    });
-    const encKeyData = await encKeyRes.json();
-
-    if (!encKeyData.status || !encKeyData.data) {
-      console.error("Encryption key error:", encKeyData);
-      return new Response(
-        JSON.stringify({ error: "Failed to get encryption key" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const jwkData = encKeyData.data;
-
-    // Build redirect URL
-    const origin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/$/, "") || "";
-    const redirectUrl = `${origin}/payment-verify`;
-
-    // Build payload
-    const payload = {
+    // Send mobile money collection request to Lenco
+    const lencoPayload = {
       reference,
-      email,
-      amount: totalNaira,
-      currency: "NGN",
+      amount: totalKwacha,
+      currency: "ZMW",
       bearer: "merchant",
-      customer: {
-        firstName: billing.firstName || email.split("@")[0],
-        lastName: billing.lastName || "Customer",
-      },
-      billing: {
-        streetAddress: billing.streetAddress || "N/A",
-        city: billing.city || "Lagos",
-        state: billing.state || "",
-        postalCode: billing.postalCode || "100001",
-        country: billing.country || "NG",
-      },
-      card: {
-        number: card.number.replace(/\s/g, ""),
-        cvv: card.cvv,
-        expiryMonth: card.expiryMonth,
-        expiryYear: card.expiryYear,
-      },
-      redirectUrl,
+      phone,
+      operator: paymentMethod, // "mtn" or "airtel"
+      country: "ZM",
     };
 
-    // Encrypt with JWE
-    const rsaPublicKey = await jose.importJWK(jwkData, "RSA-OAEP-256");
-    const jwe = await new jose.CompactEncrypt(
-      new TextEncoder().encode(JSON.stringify(payload))
-    )
-      .setProtectedHeader({
-        alg: "RSA-OAEP-256",
-        enc: "A256GCM",
-        cty: "application/json",
-        kid: jwkData.kid,
-      })
-      .encrypt(rsaPublicKey);
+    console.log("Lenco mobile money request:", JSON.stringify(lencoPayload));
 
-    // Send to Lenco
-    const lencoRes = await fetch(`${LENCO_API_BASE}/collections/card`, {
+    const lencoRes = await fetch(`${LENCO_API_BASE}/collections/mobile-money`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LENCO_TOKEN}`,
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: JSON.stringify({ encryptedPayload: jwe }),
+      body: JSON.stringify(lencoPayload),
     });
 
     const lencoData = await lencoRes.json();
     console.log("Lenco response:", JSON.stringify(lencoData));
 
     if (!lencoData.status) {
-      // Update order as failed
       await supabase.from("orders").update({ status: "failed" }).eq("id", order.id);
       return new Response(
         JSON.stringify({ error: lencoData.message || "Payment initiation failed", details: lencoData }),
@@ -174,25 +131,25 @@ Deno.serve(async (req) => {
       .update({ payment_reference: `${reference}|${lencoReference || ""}` })
       .eq("id", order.id);
 
-    // Handle 3DS redirect
-    if (paymentStatus === "3ds-auth-required") {
-      const redirectTo = lencoData.data?.meta?.authorization?.redirect;
+    // Handle statuses
+    if (paymentStatus === "successful") {
+      await supabase.from("orders").update({ status: "completed" }).eq("id", order.id);
       return new Response(
-        JSON.stringify({
-          status: "3ds-redirect",
-          redirectUrl: redirectTo,
-          orderId: order.id,
-          reference,
-        }),
+        JSON.stringify({ status: "successful", orderId: order.id, reference }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Handle immediate success
-    if (paymentStatus === "successful") {
-      await supabase.from("orders").update({ status: "completed" }).eq("id", order.id);
+    if (paymentStatus === "otp-required") {
       return new Response(
-        JSON.stringify({ status: "success", orderId: order.id, reference }),
+        JSON.stringify({ status: "otp-required", orderId: order.id, reference, lencoReference }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (paymentStatus === "pay-offline") {
+      return new Response(
+        JSON.stringify({ status: "pay-offline", orderId: order.id, reference, message: "Check your phone to approve payment" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

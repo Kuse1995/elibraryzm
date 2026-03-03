@@ -57,7 +57,7 @@ const EbookDetail = () => {
             <h1 className="font-display text-3xl md:text-4xl font-bold mb-2">{ebook.title}</h1>
             <p className="text-lg text-muted-foreground">by {ebook.author}</p>
           </div>
-          <div className="text-3xl font-bold text-accent">₦{(ebook.price / 100).toLocaleString()}</div>
+          <div className="text-3xl font-bold text-accent">K{(ebook.price / 100).toLocaleString()}</div>
           <p className="text-muted-foreground leading-relaxed">{ebook.description}</p>
           <div className="flex gap-3">
             <Button size="lg" onClick={handleAdd} disabled={inCart} className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90">

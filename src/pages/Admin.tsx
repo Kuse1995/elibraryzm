@@ -10,18 +10,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Pencil, Trash2, Plus, BookOpen, ShoppingBag, DollarSign, Shield } from "lucide-react";
 import { CATEGORIES } from "@/lib/types";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Tables } from "@/integrations/supabase/types";
+
+type Ebook = Tables<"ebooks">;
 
 const Admin = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
+  // Add form state
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [category, setCategory] = useState("");
@@ -30,6 +35,27 @@ const Admin = () => {
   const [featured, setFeatured] = useState(false);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [ebookFile, setEbookFile] = useState<File | null>(null);
+
+  // Edit state
+  const [editOpen, setEditOpen] = useState(false);
+  const [editEbook, setEditEbook] = useState<Ebook | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editAuthor, setEditAuthor] = useState("");
+  const [editCategory, setEditCategory] = useState("");
+  const [editPrice, setEditPrice] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editFeatured, setEditFeatured] = useState(false);
+
+  const openEdit = (ebook: Ebook) => {
+    setEditEbook(ebook);
+    setEditTitle(ebook.title);
+    setEditAuthor(ebook.author);
+    setEditCategory(ebook.category);
+    setEditPrice((ebook.price / 100).toString());
+    setEditDescription(ebook.description);
+    setEditFeatured(ebook.featured);
+    setEditOpen(true);
+  };
 
   const { data: ebooks = [], isLoading } = useQuery({
     queryKey: ["admin-ebooks"],
@@ -95,6 +121,28 @@ const Admin = () => {
     onError: (err: any) => toast.error(err.message),
   });
 
+  const updateEbook = useMutation({
+    mutationFn: async () => {
+      if (!editEbook) return;
+      const { error } = await supabase.from("ebooks").update({
+        title: editTitle,
+        author: editAuthor,
+        category: editCategory,
+        price: Math.round(parseFloat(editPrice) * 100),
+        description: editDescription,
+        featured: editFeatured,
+      }).eq("id", editEbook.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Ebook updated!");
+      queryClient.invalidateQueries({ queryKey: ["admin-ebooks"] });
+      queryClient.invalidateQueries({ queryKey: ["ebooks"] });
+      setEditOpen(false);
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   const deleteEbook = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("ebooks").delete().eq("id", id);
@@ -144,7 +192,7 @@ const Admin = () => {
         <Card>
           <CardContent className="p-6 flex items-center gap-4">
             <div className="p-3 rounded-lg bg-accent/10"><DollarSign className="h-6 w-6 text-accent" /></div>
-            <div><p className="text-sm text-muted-foreground">Revenue</p><p className="text-2xl font-bold">₦{(totalRevenue / 100).toLocaleString()}</p></div>
+            <div><p className="text-sm text-muted-foreground">Revenue</p><p className="text-2xl font-bold">K{(totalRevenue / 100).toLocaleString()}</p></div>
           </CardContent>
         </Card>
       </div>
@@ -178,9 +226,12 @@ const Admin = () => {
                       <TableCell className="font-medium">{ebook.title}</TableCell>
                       <TableCell>{ebook.author}</TableCell>
                       <TableCell><Badge variant="secondary">{ebook.category}</Badge></TableCell>
-                      <TableCell>₦{(ebook.price / 100).toLocaleString()}</TableCell>
+                      <TableCell>K{(ebook.price / 100).toLocaleString()}</TableCell>
                       <TableCell>{ebook.featured ? <Badge>Yes</Badge> : <Badge variant="outline">No</Badge>}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right space-x-1">
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(ebook)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => deleteEbook.mutate(ebook.id)}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -209,7 +260,7 @@ const Admin = () => {
                     <SelectContent>{CATEGORIES.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))}</SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2"><Label>Price (₦)</Label><Input type="number" step="0.01" placeholder="e.g. 15.00" value={price} onChange={(e) => setPrice(e.target.value)} required /></div>
+                <div className="space-y-2"><Label>Price (K)</Label><Input type="number" step="0.01" placeholder="e.g. 15.00" value={price} onChange={(e) => setPrice(e.target.value)} required /></div>
                 <div className="space-y-2"><Label>Description</Label><Textarea placeholder="Ebook description..." rows={4} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
                 <div className="flex items-center gap-2">
                   <Switch checked={featured} onCheckedChange={setFeatured} />
@@ -250,7 +301,7 @@ const Admin = () => {
                     <TableRow key={order.id}>
                       <TableCell className="font-mono text-xs">{order.id.slice(0, 8)}...</TableCell>
                       <TableCell>{order.guest_email || "Registered user"}</TableCell>
-                      <TableCell>₦{(order.total / 100).toLocaleString()}</TableCell>
+                      <TableCell>K{(order.total / 100).toLocaleString()}</TableCell>
                       <TableCell><Badge variant={order.status === "completed" ? "default" : "secondary"}>{order.status}</Badge></TableCell>
                       <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
                     </TableRow>
@@ -261,6 +312,35 @@ const Admin = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Edit Ebook Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Ebook</DialogTitle>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); updateEbook.mutate(); }}>
+            <div className="space-y-2"><Label>Title</Label><Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} required /></div>
+            <div className="space-y-2"><Label>Author</Label><Input value={editAuthor} onChange={(e) => setEditAuthor(e.target.value)} required /></div>
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Select value={editCategory} onValueChange={setEditCategory}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{CATEGORIES.map((cat) => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2"><Label>Price (K)</Label><Input type="number" step="0.01" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} required /></div>
+            <div className="space-y-2"><Label>Description</Label><Textarea rows={3} value={editDescription} onChange={(e) => setEditDescription(e.target.value)} /></div>
+            <div className="flex items-center gap-2">
+              <Switch checked={editFeatured} onCheckedChange={setEditFeatured} />
+              <Label>Featured</Label>
+            </div>
+            <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={updateEbook.isPending}>
+              {updateEbook.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

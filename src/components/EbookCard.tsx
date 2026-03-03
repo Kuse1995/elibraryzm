@@ -34,7 +34,7 @@ const EbookCard = ({ ebook }: { ebook: Ebook }) => {
           <h3 className="font-display font-semibold text-base leading-tight line-clamp-2 group-hover:text-accent transition-colors">{ebook.title}</h3>
           <p className="text-sm text-muted-foreground">{ebook.author}</p>
           <div className="flex items-center justify-between pt-2">
-            <span className="font-semibold text-lg">₦{(ebook.price / 100).toLocaleString()}</span>
+            <span className="font-semibold text-lg">K{(ebook.price / 100).toLocaleString()}</span>
             <Button size="sm" variant={inCart ? "secondary" : "default"} onClick={handleAdd} disabled={inCart} className="gap-1">
               <ShoppingCart className="h-3.5 w-3.5" />
               {inCart ? "Added" : "Add"}
