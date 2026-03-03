@@ -1,0 +1,97 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { reference, email } = await req.json();
+
+    if (!reference || !email) {
+      return new Response(
+        JSON.stringify({ error: "Reference and email are required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Find the completed order matching reference + guest email
+    const { data: order, error: orderError } = await supabase
+      .from("orders")
+      .select("id, status, guest_email, items")
+      .eq("payment_reference", reference)
+      .eq("status", "completed")
+      .single();
+
+    if (orderError || !order) {
+      return new Response(
+        JSON.stringify({ error: "Order not found or not yet completed. Please try again shortly." }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Case-insensitive email match
+    if (order.guest_email?.trim().toLowerCase() !== email.trim().toLowerCase()) {
+      return new Response(
+        JSON.stringify({ error: "Email does not match the order. Please use the email you entered during checkout." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Get order items with ebook details
+    const { data: orderItems, error: itemsError } = await supabase
+      .from("order_items")
+      .select("*, ebook:ebooks(*)")
+      .eq("order_id", order.id);
+
+    if (itemsError) {
+      return new Response(
+        JSON.stringify({ error: "Failed to retrieve purchased items" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Generate signed URLs for each ebook file
+    const ebooksWithUrls = await Promise.all(
+      (orderItems || []).map(async (item: any) => {
+        let signedUrl = null;
+        if (item.ebook?.file_url) {
+          const filePath = item.ebook.file_url.replace(/^\//, "");
+          const { data } = await supabase.storage
+            .from("ebook-files")
+            .createSignedUrl(filePath, 900); // 15 minutes
+          signedUrl = data?.signedUrl || null;
+        }
+        return {
+          id: item.ebook?.id,
+          title: item.ebook?.title,
+          author: item.ebook?.author,
+          cover_url: item.ebook?.cover_url,
+          download_url: signedUrl,
+        };
+      })
+    );
+
+    return new Response(
+      JSON.stringify({ ebooks: ebooksWithUrls }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (e) {
+    console.error("guest-download-links error:", e);
+    return new Response(
+      JSON.stringify({ error: "Internal server error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
