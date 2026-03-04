@@ -59,7 +59,19 @@ Deno.serve(async (req) => {
 
     const ebookMap = new Map(ebooks.map((e: any) => [e.id, e]));
 
-    // Calculate total: full price items + 50% discount items
+    // Read discount percentage from site_settings
+    let discountPercent = 50;
+    const { data: settingRow } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "upsell_discount_percent")
+      .single();
+    if (settingRow?.value) {
+      const parsed = parseInt(settingRow.value);
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= 99) discountPercent = parsed;
+    }
+
+    // Calculate total: full price items + discounted items
     let total = 0;
     const orderItems: any[] = [];
 
@@ -71,10 +83,10 @@ Deno.serve(async (req) => {
     }
 
     for (const id of discountIds) {
-      if (fullPriceIds.includes(id)) continue; // Don't double-count
+      if (fullPriceIds.includes(id)) continue;
       const e = ebookMap.get(id);
       if (!e) continue;
-      const discountedPrice = Math.floor(e.price / 2);
+      const discountedPrice = Math.floor(e.price * (100 - discountPercent) / 100);
       total += discountedPrice;
       orderItems.push({ id: e.id, title: e.title, price: discountedPrice, originalPrice: e.price, discounted: true });
     }
