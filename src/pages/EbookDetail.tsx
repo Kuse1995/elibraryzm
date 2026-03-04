@@ -31,6 +31,16 @@ const EbookDetail = () => {
     enabled: !!id,
   });
 
+  // Fetch discount percentage from site_settings
+  const { data: discountPercent = 50 } = useQuery({
+    queryKey: ["site-settings", "upsell_discount_percent"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("site_settings").select("value").eq("key", "upsell_discount_percent").single();
+      if (error) return 50;
+      return parseInt(data.value) || 50;
+    },
+  });
+
   // Fetch a suggested upsell ebook (same category first, fallback to any)
   const { data: upsellEbook } = useQuery({
     queryKey: ["upsell-ebook", id, ebook?.category],
@@ -74,7 +84,7 @@ const EbookDetail = () => {
     );
   }
 
-  const upsellPrice = upsellEbook ? Math.floor(upsellEbook.price / 2) : 0;
+  const upsellPrice = upsellEbook ? Math.floor(upsellEbook.price * (100 - discountPercent) / 100) : 0;
   const displayTotal = includeUpsell && upsellEbook
     ? ebook.price + upsellPrice
     : ebook.price;
@@ -152,7 +162,7 @@ const EbookDetail = () => {
             <div className="border border-accent/30 rounded-lg p-4 bg-accent/5 space-y-3">
               <div className="flex items-center gap-2 text-accent font-semibold">
                 <Gift className="h-5 w-5" />
-                <span>Special Offer — 50% Off!</span>
+                <span>Special Offer — {discountPercent}% Off!</span>
               </div>
               <label className="flex items-start gap-3 cursor-pointer">
                 <Checkbox
@@ -263,7 +273,7 @@ const EbookDetail = () => {
 
             {includeUpsell && upsellEbook && (
               <p className="text-xs text-muted-foreground text-center">
-                Includes "{upsellEbook.title}" at 50% off
+                Includes "{upsellEbook.title}" at {discountPercent}% off
               </p>
             )}
           </div>

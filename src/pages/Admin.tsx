@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Pencil, Trash2, Plus, BookOpen, ShoppingBag, DollarSign, Shield, Users } from "lucide-react";
+import { Pencil, Trash2, Plus, BookOpen, ShoppingBag, DollarSign, Shield, Users, Settings, Loader2 } from "lucide-react";
 import { CATEGORIES } from "@/lib/types";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -35,6 +35,10 @@ const Admin = () => {
   const [featured, setFeatured] = useState(false);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [ebookFile, setEbookFile] = useState<File | null>(null);
+
+  // Settings state
+  const [discountPercent, setDiscountPercent] = useState("");
+  const [savingSettings, setSavingSettings] = useState(false);
 
   // Edit state
   const [editOpen, setEditOpen] = useState(false);
@@ -66,6 +70,19 @@ const Admin = () => {
     },
     enabled: isAdmin,
   });
+
+  const { data: upsellSetting } = useQuery({
+    queryKey: ["site-settings", "upsell_discount_percent"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("site_settings").select("value").eq("key", "upsell_discount_percent").single();
+      if (error) throw error;
+      return data.value;
+    },
+    enabled: isAdmin,
+  });
+
+  // Sync fetched setting to local state
+  useState(() => { if (upsellSetting) setDiscountPercent(upsellSetting); });
 
   const { data: orders = [] } = useQuery({
     queryKey: ["admin-orders"],
@@ -239,6 +256,7 @@ const Admin = () => {
           <TabsTrigger value="add">Add Ebook</TabsTrigger>
           <TabsTrigger value="orders">Orders</TabsTrigger>
           <TabsTrigger value="customers">Customers</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="ebooks" className="mt-6">
@@ -407,6 +425,51 @@ const Admin = () => {
               </Card>
             </>
           )}
+        </TabsContent>
+        <TabsContent value="settings" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Settings className="h-5 w-5" /> Site Settings</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-4 max-w-sm" onSubmit={async (e) => {
+                e.preventDefault();
+                const val = parseInt(discountPercent);
+                if (isNaN(val) || val < 1 || val > 99) {
+                  toast.error("Enter a percentage between 1 and 99");
+                  return;
+                }
+                setSavingSettings(true);
+                const { error } = await supabase.from("site_settings").update({ value: val.toString() }).eq("key", "upsell_discount_percent");
+                if (error) {
+                  toast.error(error.message);
+                } else {
+                  toast.success("Upsell discount updated!");
+                  queryClient.invalidateQueries({ queryKey: ["site-settings"] });
+                }
+                setSavingSettings(false);
+              }}>
+                <div className="space-y-2">
+                  <Label>Upsell Discount Percentage</Label>
+                  <p className="text-sm text-muted-foreground">Customers are offered a second ebook at this discount when buying.</p>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={99}
+                      value={discountPercent || upsellSetting || "50"}
+                      onChange={(e) => setDiscountPercent(e.target.value)}
+                      className="w-24"
+                    />
+                    <span className="text-muted-foreground font-medium">%</span>
+                  </div>
+                </div>
+                <Button type="submit" className="bg-accent text-accent-foreground hover:bg-accent/90" disabled={savingSettings}>
+                  {savingSettings ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Saving...</> : "Save"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
