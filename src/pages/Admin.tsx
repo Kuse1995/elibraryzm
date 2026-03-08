@@ -332,6 +332,8 @@ const Admin = () => {
           </Card>
         </TabsContent>
 
+        <SubmissionsTab ebooks={ebooks} queryClient={queryClient} />
+
         <TabsContent value="orders" className="mt-6">
           {orders.length === 0 ? (
             <Card>
