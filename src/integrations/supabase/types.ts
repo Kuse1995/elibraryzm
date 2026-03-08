@@ -212,6 +212,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      user_can_read_order: {
+        Args: { _order_id: string; _uid: string }
+        Returns: boolean
+      }
+      user_can_read_order_item: {
+        Args: { _ebook_id: string; _order_id: string; _uid: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "author"
