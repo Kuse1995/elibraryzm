@@ -9,7 +9,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const { items } = useCart();
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, isAdmin, isAuthor, signOut } = useAuth();
   const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
   const navLinks = [
