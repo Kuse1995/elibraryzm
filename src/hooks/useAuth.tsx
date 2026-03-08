@@ -29,10 +29,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isAuthor, setIsAuthor] = useState(false);
 
-  const checkAdmin = async (userId: string) => {
-    const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-    setIsAdmin(!!data);
+  const checkRoles = async (userId: string) => {
+    const { data: adminData } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    setIsAdmin(!!adminData);
+    const { data: authorData } = await supabase.rpc("has_role", { _user_id: userId, _role: "author" as any });
+    setIsAuthor(!!authorData);
   };
 
   useEffect(() => {
