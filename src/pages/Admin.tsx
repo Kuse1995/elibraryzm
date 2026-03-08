@@ -251,9 +251,10 @@ const Admin = () => {
       </div>
 
       <Tabs defaultValue="ebooks">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="ebooks">Manage Ebooks</TabsTrigger>
           <TabsTrigger value="add">Add Ebook</TabsTrigger>
+          <TabsTrigger value="submissions">Submissions</TabsTrigger>
           <TabsTrigger value="orders">Orders</TabsTrigger>
           <TabsTrigger value="customers">Customers</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
