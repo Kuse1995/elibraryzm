@@ -15,6 +15,7 @@ import MyLibrary from "./pages/MyLibrary";
 import Admin from "./pages/Admin";
 import PaymentVerify from "./pages/PaymentVerify";
 import Downloads from "./pages/Downloads";
+import AuthorDashboard from "./pages/AuthorDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
