@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Pencil, Trash2, Plus, BookOpen, ShoppingBag, DollarSign, Shield, Users, Settings, Loader2 } from "lucide-react";
+import { Pencil, Trash2, Plus, BookOpen, ShoppingBag, DollarSign, Shield, Users, Settings, Loader2, CheckCircle, XCircle, Clock } from "lucide-react";
 import { CATEGORIES } from "@/lib/types";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
