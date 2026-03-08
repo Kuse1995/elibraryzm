@@ -14,6 +14,7 @@ const Index = () => {
         .from("ebooks")
         .select("*")
         .eq("featured", true)
+        .eq("approval_status", "approved")
         .limit(4);
       if (error) throw error;
       return data;

@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Pencil, Trash2, Plus, BookOpen, ShoppingBag, DollarSign, Shield, Users, Settings, Loader2 } from "lucide-react";
+import { Pencil, Trash2, Plus, BookOpen, ShoppingBag, DollarSign, Shield, Users, Settings, Loader2, CheckCircle, XCircle, Clock } from "lucide-react";
 import { CATEGORIES } from "@/lib/types";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,6 +20,84 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 
 type Ebook = Tables<"ebooks">;
+
+const SubmissionsTab = ({ ebooks, queryClient }: { ebooks: Ebook[]; queryClient: any }) => {
+  const pendingBooks = ebooks.filter((e: any) => e.approval_status === "pending");
+  const [updating, setUpdating] = useState<string | null>(null);
+
+  const handleApproval = async (id: string, status: "approved" | "rejected") => {
+    setUpdating(id);
+    const { error } = await supabase.from("ebooks").update({ approval_status: status } as any).eq("id", id);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success(`Book ${status}!`);
+      queryClient.invalidateQueries({ queryKey: ["admin-ebooks"] });
+      queryClient.invalidateQueries({ queryKey: ["ebooks"] });
+    }
+    setUpdating(null);
+  };
+
+  return (
+    <TabsContent value="submissions" className="mt-6">
+      {pendingBooks.length === 0 ? (
+        <Card>
+          <CardContent className="p-10 text-center text-muted-foreground">
+            <Clock className="h-12 w-12 mx-auto mb-3 text-muted-foreground/40" />
+            <p>No pending submissions.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Pending Submissions ({pendingBooks.length})</CardTitle>
+          </CardHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Author</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pendingBooks.map((book: any) => (
+                <TableRow key={book.id}>
+                  <TableCell className="font-medium">{book.title}</TableCell>
+                  <TableCell>{book.author}</TableCell>
+                  <TableCell><Badge variant="secondary">{book.category}</Badge></TableCell>
+                  <TableCell>K{(book.price / 100).toLocaleString()}</TableCell>
+                  <TableCell className="text-right space-x-2">
+                    <Button
+                      size="sm"
+                      variant="default"
+                      disabled={updating === book.id}
+                      onClick={() => handleApproval(book.id, "approved")}
+                      className="gap-1"
+                    >
+                      <CheckCircle className="h-4 w-4" /> Approve
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      disabled={updating === book.id}
+                      onClick={() => handleApproval(book.id, "rejected")}
+                      className="gap-1"
+                    >
+                      <XCircle className="h-4 w-4" /> Reject
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+    </TabsContent>
+  );
+};
 
 const Admin = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -251,9 +329,10 @@ const Admin = () => {
       </div>
 
       <Tabs defaultValue="ebooks">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="ebooks">Manage Ebooks</TabsTrigger>
           <TabsTrigger value="add">Add Ebook</TabsTrigger>
+          <TabsTrigger value="submissions">Submissions</TabsTrigger>
           <TabsTrigger value="orders">Orders</TabsTrigger>
           <TabsTrigger value="customers">Customers</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -330,6 +409,8 @@ const Admin = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <SubmissionsTab ebooks={ebooks} queryClient={queryClient} />
 
         <TabsContent value="orders" className="mt-6">
           {orders.length === 0 ? (
