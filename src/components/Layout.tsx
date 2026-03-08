@@ -16,6 +16,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     { to: "/", label: "Home" },
     { to: "/browse", label: "Browse" },
     ...(user ? [{ to: "/my-library", label: "My Library" }] : []),
+    ...(isAuthor ? [{ to: "/author", label: "Author Portal" }] : []),
     ...(isAdmin ? [{ to: "/admin", label: "Admin" }] : []),
   ];
 
