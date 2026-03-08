@@ -16,7 +16,7 @@ const Browse = () => {
   const { data: ebooks = [], isLoading } = useQuery({
     queryKey: ["ebooks"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("ebooks").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("ebooks").select("*").eq("approval_status", "approved").order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
