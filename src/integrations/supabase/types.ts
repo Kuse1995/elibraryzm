@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       ebooks: {
         Row: {
+          approval_status: string
           author: string
           category: string
           cover_url: string | null
@@ -25,10 +26,12 @@ export type Database = {
           file_url: string | null
           id: string
           price: number
+          submitted_by: string | null
           title: string
           updated_at: string
         }
         Insert: {
+          approval_status?: string
           author: string
           category?: string
           cover_url?: string | null
@@ -38,10 +41,12 @@ export type Database = {
           file_url?: string | null
           id?: string
           price?: number
+          submitted_by?: string | null
           title: string
           updated_at?: string
         }
         Update: {
+          approval_status?: string
           author?: string
           category?: string
           cover_url?: string | null
@@ -51,6 +56,7 @@ export type Database = {
           file_url?: string | null
           id?: string
           price?: number
+          submitted_by?: string | null
           title?: string
           updated_at?: string
         }
