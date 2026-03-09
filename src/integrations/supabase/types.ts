@@ -146,6 +146,7 @@ export type Database = {
           display_name: string | null
           email: string | null
           id: string
+          subscription_expires_at: string | null
           updated_at: string
           user_id: string
         }
@@ -154,6 +155,7 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id?: string
+          subscription_expires_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -162,6 +164,7 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id?: string
+          subscription_expires_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -205,6 +208,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_active_author_subscription: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
