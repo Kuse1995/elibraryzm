@@ -140,6 +140,48 @@ export type Database = {
         }
         Relationships: []
       }
+      payout_requests: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string
+          id: string
+          payment_method: string
+          phone_number: string
+          processed_at: string | null
+          processed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          created_at?: string
+          id?: string
+          payment_method?: string
+          phone_number: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          payment_method?: string
+          phone_number?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -208,6 +250,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_author_earnings: {
+        Args: { _author_id: string }
+        Returns: {
+          available_balance: number
+          net_earnings: number
+          payout_requests_total: number
+          platform_fees: number
+          total_sales: number
+        }[]
+      }
       has_active_author_subscription: {
         Args: { _user_id: string }
         Returns: boolean

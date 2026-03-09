@@ -9,12 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Plus, BarChart3, Shield, Loader2, DollarSign, ShoppingBag } from "lucide-react";
+import { BookOpen, Plus, BarChart3, Shield, Loader2, DollarSign, ShoppingBag, Wallet } from "lucide-react";
 import { CATEGORIES } from "@/lib/types";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import AuthorWallet from "@/components/AuthorWallet";
 
 const AuthorDashboard = () => {
   const { user, isAuthor, loading: authLoading } = useAuth();
@@ -177,6 +178,7 @@ const AuthorDashboard = () => {
         <TabsList>
           <TabsTrigger value="books">My Books</TabsTrigger>
           <TabsTrigger value="submit">Submit Book</TabsTrigger>
+          <TabsTrigger value="wallet">Wallet</TabsTrigger>
           <TabsTrigger value="sales">Sales Report</TabsTrigger>
         </TabsList>
 
@@ -249,6 +251,10 @@ const AuthorDashboard = () => {
               </form>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="wallet" className="mt-6">
+          <AuthorWallet userId={user.id} />
         </TabsContent>
 
         <TabsContent value="sales" className="mt-6">
