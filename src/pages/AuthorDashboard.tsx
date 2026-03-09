@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Plus, BarChart3, Shield, Loader2, DollarSign, ShoppingBag } from "lucide-react";
+import { BookOpen, Plus, BarChart3, Shield, Loader2, DollarSign, ShoppingBag, Wallet } from "lucide-react";
 import { CATEGORIES } from "@/lib/types";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
