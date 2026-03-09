@@ -253,6 +253,10 @@ const AuthorDashboard = () => {
           </Card>
         </TabsContent>
 
+        <TabsContent value="wallet" className="mt-6">
+          <AuthorWallet userId={user.id} />
+        </TabsContent>
+
         <TabsContent value="sales" className="mt-6">
           {bookSales.length === 0 ? (
             <Card>
