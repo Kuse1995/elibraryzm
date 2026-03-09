@@ -39,6 +39,7 @@ const App = () => (
                 <Route path="/my-library" element={<MyLibrary />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/author" element={<AuthorDashboard />} />
+                <Route path="/upgrade-to-author" element={<UpgradeToAuthor />} />
                 <Route path="/payment-verify" element={<PaymentVerify />} />
                 <Route path="/downloads" element={<Downloads />} />
                 <Route path="*" element={<NotFound />} />
