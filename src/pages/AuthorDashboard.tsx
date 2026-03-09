@@ -178,6 +178,7 @@ const AuthorDashboard = () => {
         <TabsList>
           <TabsTrigger value="books">My Books</TabsTrigger>
           <TabsTrigger value="submit">Submit Book</TabsTrigger>
+          <TabsTrigger value="wallet">Wallet</TabsTrigger>
           <TabsTrigger value="sales">Sales Report</TabsTrigger>
         </TabsList>
 
