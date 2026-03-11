@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
+  const { user } = useAuth();
+  const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "Reader";
   const { data: featured = [] } = useQuery({
     queryKey: ["ebooks", "featured"],
     queryFn: async () => {
