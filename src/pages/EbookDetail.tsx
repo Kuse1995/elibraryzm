@@ -204,11 +204,11 @@ const EbookDetail = () => {
             {!user ? (
               <div className="text-center space-y-4 py-4">
                 <p className="text-muted-foreground">
-                  Create a free account or sign in to purchase. Your ebooks will be saved to your library forever.
+                  Create a free account to purchase. Your ebooks will be saved to your library forever.
                 </p>
                 <Link to={`/auth?redirect=/ebook/${id}`}>
                   <Button size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                    Sign In to Purchase
+                    Create Free Account to Purchase
                   </Button>
                 </Link>
               </div>
