@@ -19,7 +19,6 @@ const EbookDetail = () => {
   const [paymentMethod, setPaymentMethod] = useState<"mtn" | "airtel">("mtn");
   const [loading, setLoading] = useState(false);
   const [includeUpsell, setIncludeUpsell] = useState(false);
-  const [includeUpsell, setIncludeUpsell] = useState(false);
 
   const { data: ebook, isLoading } = useQuery({
     queryKey: ["ebook", id],
