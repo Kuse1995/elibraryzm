@@ -508,6 +508,7 @@ const Admin = () => {
             </>
           )}
         </TabsContent>
+        <UsersTab isAdmin={isAdmin} orders={orders} />
         <TabsContent value="settings" className="mt-6">
           <Card>
             <CardHeader>
