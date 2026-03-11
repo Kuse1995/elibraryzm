@@ -94,8 +94,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           <div className="grid gap-8 md:grid-cols-3">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Book className="h-6 w-6 text-accent" />
-                <span className="font-display text-lg font-bold">ELibrary</span>
+                <img src={logo} alt="E Library" className="h-8 brightness-0 invert" />
               </div>
               <p className="text-sm text-primary-foreground/70">Your Christian Digital Library — Inspiring faith through the written word.</p>
             </div>
