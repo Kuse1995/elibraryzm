@@ -199,86 +199,152 @@ const EbookDetail = () => {
             </div>
           )}
 
-          {/* Buy Now Form */}
-          <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
-            <h3 className="font-semibold">Buy Now</h3>
-
-            {!user ? (
-              <div className="text-center space-y-4 py-4">
-                <p className="text-muted-foreground">
-                  Create a free account to purchase. Your ebooks will be saved to your library forever.
-                </p>
-                <Link to={`/auth?redirect=/ebook/${id}`}>
-                  <Button size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                    Create Free Account to Purchase
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="0977123456"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Payment Method</Label>
-                  <div className="flex gap-3">
-                    <Button
-                      type="button"
-                      variant={paymentMethod === "mtn" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setPaymentMethod("mtn")}
-                      className={paymentMethod === "mtn" ? "bg-yellow-500 hover:bg-yellow-600 text-black" : ""}
-                    >
-                      MTN
+          {/* Buy / Download Form */}
+          {ebook.price === 0 ? (
+            <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
+              <h3 className="font-semibold">Download Free</h3>
+              {!user ? (
+                <div className="text-center space-y-4 py-4">
+                  <p className="text-muted-foreground">
+                    Create a free account to download. Your resources will be saved to your library.
+                  </p>
+                  <Link to={`/auth?redirect=/ebook/${id}`}>
+                    <Button size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                      Create Free Account to Download
                     </Button>
-                    <Button
-                      type="button"
-                      variant={paymentMethod === "airtel" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setPaymentMethod("airtel")}
-                      className={paymentMethod === "airtel" ? "bg-red-600 hover:bg-red-700 text-white" : ""}
-                    >
-                      Airtel
-                    </Button>
-                  </div>
+                  </Link>
                 </div>
-
+              ) : (
                 <Button
                   size="lg"
-                  className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
-                  onClick={handleBuyNow}
+                  className="w-full bg-accent text-accent-foreground hover:bg-accent/90 gap-2"
                   disabled={loading}
+                  onClick={async () => {
+                    if (!ebook.file_url) {
+                      toast.error("File not available yet");
+                      return;
+                    }
+                    setLoading(true);
+                    try {
+                      const filePath = ebook.file_url.replace(/^\//, "");
+                      const { data: urlData, error } = await supabase.storage
+                        .from("ebook-files")
+                        .createSignedUrl(filePath, 900);
+                      if (error || !urlData?.signedUrl) throw new Error("Could not generate download link");
+                      const response = await fetch(urlData.signedUrl);
+                      if (!response.ok) throw new Error("Download failed");
+                      const blob = await response.blob();
+                      const objectUrl = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = objectUrl;
+                      a.download = `${ebook.title.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_")}.pdf`;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                      URL.revokeObjectURL(objectUrl);
+                      toast.success("Download started!");
+                    } catch (err: any) {
+                      toast.error(err.message || "Download failed");
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                      Processing...
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Downloading...
                     </>
                   ) : (
-                    `Buy Now — K${(displayTotal / 100).toLocaleString()}`
+                    <>
+                      <Download className="h-5 w-5" />
+                      Download Free
+                    </>
                   )}
                 </Button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
+              <h3 className="font-semibold">Buy Now</h3>
 
-                {includeUpsell && upsellEbook && (
-                  <p className="text-xs text-muted-foreground text-center">
-                    Includes "{upsellEbook.title}" at {discountPercent}% off
+              {!user ? (
+                <div className="text-center space-y-4 py-4">
+                  <p className="text-muted-foreground">
+                    Create a free account to purchase. Your ebooks will be saved to your library forever.
                   </p>
-                )}
-              </>
-            )}
-          </div>
+                  <Link to={`/auth?redirect=/ebook/${id}`}>
+                    <Button size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                      Create Free Account to Purchase
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="0977123456"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Payment Method</Label>
+                    <div className="flex gap-3">
+                      <Button
+                        type="button"
+                        variant={paymentMethod === "mtn" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setPaymentMethod("mtn")}
+                        className={paymentMethod === "mtn" ? "bg-yellow-500 hover:bg-yellow-600 text-black" : ""}
+                      >
+                        MTN
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={paymentMethod === "airtel" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setPaymentMethod("airtel")}
+                        className={paymentMethod === "airtel" ? "bg-red-600 hover:bg-red-700 text-white" : ""}
+                      >
+                        Airtel
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Button
+                    size="lg"
+                    className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+                    onClick={handleBuyNow}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                        Processing...
+                      </>
+                    ) : (
+                      `Buy Now — K${(displayTotal / 100).toLocaleString()}`
+                    )}
+                  </Button>
+
+                  {includeUpsell && upsellEbook && (
+                    <p className="text-xs text-muted-foreground text-center">
+                      Includes "{upsellEbook.title}" at {discountPercent}% off
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

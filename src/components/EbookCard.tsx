@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart, BookOpen } from "lucide-react";
+import { ShoppingCart, BookOpen, Download } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "sonner";
 import { Tables } from "@/integrations/supabase/types";
@@ -11,6 +11,7 @@ type Ebook = Tables<"ebooks">;
 const EbookCard = ({ ebook }: { ebook: Ebook }) => {
   const { addItem, items } = useCart();
   const inCart = items.some((i) => i.id === ebook.id);
+  const isFree = ebook.price === 0;
 
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -34,11 +35,22 @@ const EbookCard = ({ ebook }: { ebook: Ebook }) => {
           <h3 className="font-display font-semibold text-base leading-tight line-clamp-2 group-hover:text-accent transition-colors">{ebook.title}</h3>
           <p className="text-sm text-muted-foreground">{ebook.author}</p>
           <div className="flex items-center justify-between pt-2">
-            <span className="font-semibold text-lg">K{(ebook.price / 100).toLocaleString()}</span>
-            <Button size="sm" variant={inCart ? "secondary" : "default"} onClick={handleAdd} disabled={inCart} className="gap-1">
-              <ShoppingCart className="h-3.5 w-3.5" />
-              {inCart ? "Added" : "Add"}
-            </Button>
+            {isFree ? (
+              <span className="font-semibold text-lg text-accent">Free</span>
+            ) : (
+              <span className="font-semibold text-lg">K{(ebook.price / 100).toLocaleString()}</span>
+            )}
+            {isFree ? (
+              <Button size="sm" variant="default" className="gap-1">
+                <Download className="h-3.5 w-3.5" />
+                Download
+              </Button>
+            ) : (
+              <Button size="sm" variant={inCart ? "secondary" : "default"} onClick={handleAdd} disabled={inCart} className="gap-1">
+                <ShoppingCart className="h-3.5 w-3.5" />
+                {inCart ? "Added" : "Add"}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
