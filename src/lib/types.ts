@@ -5,6 +5,7 @@ export const CATEGORIES = [
   "Children",
   "Theology",
   "Prayer",
+  "Free Resources",
 ] as const;
 
 export type Category = (typeof CATEGORIES)[number];
