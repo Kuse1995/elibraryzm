@@ -31,7 +31,7 @@ const Auth = () => {
       <div className="container flex items-center justify-center min-h-[calc(100vh-12rem)] py-10">
         <Card className="w-full max-w-md text-center">
           <CardContent className="pt-8 pb-8 space-y-4">
-            <img src={logo} alt="E Library" className="h-10 mx-auto" />
+            <img src={logo} alt="E Library" className="h-12 w-auto object-contain mx-auto" />
             <h2 className="font-display text-xl font-semibold">You're signed in!</h2>
             <p className="text-muted-foreground text-sm">{user.email}</p>
             <div className="flex gap-3 justify-center">
@@ -91,7 +91,7 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-2">
-            <img src={logo} alt="E Library" className="h-10" />
+            <img src={logo} alt="E Library" className="h-12 w-auto object-contain" />
           </div>
           <CardTitle className="font-display text-2xl">
             {isLogin ? "Welcome Back" : "Create Account"}

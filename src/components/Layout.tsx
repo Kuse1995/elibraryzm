@@ -26,7 +26,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <img src={logo} alt="E Library" className="h-8" />
+            <img src={logo} alt="E Library" className="h-10 w-auto object-contain" />
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">
@@ -94,7 +94,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           <div className="grid gap-8 md:grid-cols-3">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <img src={logo} alt="E Library" className="h-8 brightness-0 invert" />
+                <img src={logo} alt="E Library" className="h-10 w-auto object-contain brightness-0 invert" />
               </div>
               <p className="text-sm text-primary-foreground/70">Your Christian Digital Library — Inspiring faith through the written word.</p>
             </div>
