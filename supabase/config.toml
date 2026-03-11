@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.subscription-payment]
 verify_jwt = false
+
+[functions.automation-sync]
+verify_jwt = false
+
+[functions.guest-download-links]
+verify_jwt = false
