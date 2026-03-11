@@ -16,8 +16,14 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get("redirect");
 
   if (user) {
+    if (redirectTo) {
+      navigate(redirectTo);
+      return null;
+    }
     return (
       <div className="container flex items-center justify-center min-h-[calc(100vh-12rem)] py-10">
         <Card className="w-full max-w-md text-center">
