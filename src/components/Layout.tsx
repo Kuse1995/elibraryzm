@@ -55,9 +55,14 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               </Button>
             </Link>
             {user ? (
-              <Button variant="ghost" size="icon" onClick={signOut} title="Sign out">
-                <LogOut className="h-5 w-5" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <span className="hidden sm:inline text-sm font-medium text-foreground">
+                  {user.user_metadata?.display_name || user.email?.split("@")[0]}
+                </span>
+                <Button variant="ghost" size="icon" onClick={signOut} title="Sign out">
+                  <LogOut className="h-5 w-5" />
+                </Button>
+              </div>
             ) : (
               <Link to="/auth">
                 <Button variant="ghost" size="icon">
@@ -102,7 +107,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               <h4 className="font-display font-semibold mb-3">Quick Links</h4>
               <div className="space-y-2 text-sm text-primary-foreground/70">
                 <Link to="/browse" className="block hover:text-accent">Browse Ebooks</Link>
-                <Link to="/auth" className="block hover:text-accent">Sign In</Link>
+                {user ? (
+                  <Link to="/my-library" className="block hover:text-accent">My Library</Link>
+                ) : (
+                  <Link to="/auth" className="block hover:text-accent">Sign In</Link>
+                )}
               </div>
             </div>
             <div>

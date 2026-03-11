@@ -5,8 +5,11 @@ import EbookCard from "@/components/EbookCard";
 import { CATEGORIES } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
+  const { user } = useAuth();
+  const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "Reader";
   const { data: featured = [] } = useQuery({
     queryKey: ["ebooks", "featured"],
     queryFn: async () => {
@@ -48,11 +51,17 @@ const Index = () => {
                 Browse Ebooks <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
-            <Link to="/auth">
-              <Button size="lg" className="border border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 text-base px-8">
-                Sign Up Free
-              </Button>
-            </Link>
+            {user ? (
+              <div className="inline-flex items-center gap-2 border border-primary-foreground/30 rounded-lg px-8 py-2.5 text-primary-foreground text-base font-medium">
+                Welcome, {displayName} 👋
+              </div>
+            ) : (
+              <Link to="/auth">
+                <Button size="lg" className="border border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 text-base px-8">
+                  Sign Up Free
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </section>
@@ -91,8 +100,14 @@ const Index = () => {
       <section className="container py-16 text-center">
         <div className="max-w-2xl mx-auto">
           <h2 className="font-display text-2xl md:text-3xl font-bold mb-4">Start Your Spiritual Reading Journey</h2>
-          <p className="text-muted-foreground mb-6">Create a free account to track your purchases, build your library, and get personalized recommendations.</p>
-          <Link to="/auth"><Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 px-8">Get Started Today</Button></Link>
+          <p className="text-muted-foreground mb-6">
+            {user ? "Explore our collection and continue your spiritual reading journey." : "Create a free account to track your purchases, build your library, and get personalized recommendations."}
+          </p>
+          {user ? (
+            <Link to="/browse"><Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 px-8">Browse Ebooks</Button></Link>
+          ) : (
+            <Link to="/auth"><Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 px-8">Get Started Today</Button></Link>
+          )}
         </div>
       </section>
     </div>

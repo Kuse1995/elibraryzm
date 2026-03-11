@@ -99,6 +99,114 @@ const SubmissionsTab = ({ ebooks, queryClient }: { ebooks: Ebook[]; queryClient:
   );
 };
 
+const UsersTab = ({ isAdmin, orders }: { isAdmin: boolean; orders: any[] }) => {
+  const { data: profiles = [], isLoading } = useQuery({
+    queryKey: ["admin-profiles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdmin,
+  });
+
+  const { data: roles = [] } = useQuery({
+    queryKey: ["admin-user-roles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("user_roles").select("*");
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdmin,
+  });
+
+  const usersWithActivity = useMemo(() => {
+    return profiles.map((profile) => {
+      const userOrders = orders.filter((o) => o.user_id === profile.user_id && o.status === "completed");
+      const userRoles = roles.filter((r) => r.user_id === profile.user_id).map((r) => r.role);
+      return {
+        ...profile,
+        roles: userRoles,
+        orderCount: userOrders.length,
+        totalSpent: userOrders.reduce((sum, o) => sum + o.total, 0),
+        lastActive: userOrders.length > 0 ? userOrders.sort((a, b) => b.created_at.localeCompare(a.created_at))[0].created_at : null,
+      };
+    });
+  }, [profiles, orders, roles]);
+
+  return (
+    <TabsContent value="users" className="mt-6">
+      {isLoading ? (
+        <Card><CardContent className="p-10 text-center text-muted-foreground">Loading users...</CardContent></Card>
+      ) : usersWithActivity.length === 0 ? (
+        <Card>
+          <CardContent className="p-10 text-center text-muted-foreground">
+            <Users className="h-12 w-12 mx-auto mb-3 text-muted-foreground/40" />
+            <p>No registered users yet.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-sm text-muted-foreground">Total Users</p>
+                <p className="text-2xl font-bold">{usersWithActivity.length}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-sm text-muted-foreground">Authors</p>
+                <p className="text-2xl font-bold">{usersWithActivity.filter((u) => u.roles.includes("author")).length}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-sm text-muted-foreground">Admins</p>
+                <p className="text-2xl font-bold">{usersWithActivity.filter((u) => u.roles.includes("admin")).length}</p>
+              </CardContent>
+            </Card>
+          </div>
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role(s)</TableHead>
+                  <TableHead>Orders</TableHead>
+                  <TableHead>Total Spent</TableHead>
+                  <TableHead>Last Active</TableHead>
+                  <TableHead>Joined</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {usersWithActivity.map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell className="font-medium">{u.display_name || "—"}</TableCell>
+                    <TableCell>{u.email || "—"}</TableCell>
+                    <TableCell className="space-x-1">
+                      {u.roles.map((r) => (
+                        <Badge key={r} variant={r === "admin" ? "default" : r === "author" ? "secondary" : "outline"}>
+                          {r}
+                        </Badge>
+                      ))}
+                    </TableCell>
+                    <TableCell>{u.orderCount}</TableCell>
+                    <TableCell>K{(u.totalSpent / 100).toLocaleString()}</TableCell>
+                    <TableCell>{u.lastActive ? new Date(u.lastActive).toLocaleDateString() : "—"}</TableCell>
+                    <TableCell>{new Date(u.created_at).toLocaleDateString()}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </>
+      )}
+    </TabsContent>
+  );
+};
+
 const Admin = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
@@ -335,6 +443,7 @@ const Admin = () => {
           <TabsTrigger value="submissions">Submissions</TabsTrigger>
           <TabsTrigger value="orders">Orders</TabsTrigger>
           <TabsTrigger value="customers">Customers</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -507,6 +616,7 @@ const Admin = () => {
             </>
           )}
         </TabsContent>
+        <UsersTab isAdmin={isAdmin} orders={orders} />
         <TabsContent value="settings" className="mt-6">
           <Card>
             <CardHeader>
