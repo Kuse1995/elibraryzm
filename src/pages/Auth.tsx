@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Book } from "lucide-react";
+import logo from "@/assets/elibrary-logo.png";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { lovable } from "@/integrations/lovable";
