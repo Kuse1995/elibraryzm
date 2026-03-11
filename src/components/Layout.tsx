@@ -113,7 +113,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             </div>
           </div>
           <div className="mt-8 pt-6 border-t border-primary-foreground/20 text-center text-sm text-primary-foreground/50">
-            © {new Date().getFullYear()} ELibrary. All rights reserved.
+            © {new Date().getFullYear()} E Library. All rights reserved.
           </div>
         </div>
       </footer>

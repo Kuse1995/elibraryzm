@@ -97,7 +97,7 @@ const Auth = () => {
             {isLogin ? "Welcome Back" : "Create Account"}
           </CardTitle>
           <CardDescription>
-            {isLogin ? "Sign in to access your library" : "Join ELibrary and start your reading journey"}
+            {isLogin ? "Sign in to access your library" : "Join E Library and start your reading journey"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
