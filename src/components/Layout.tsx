@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
-import { Book, ShoppingCart, User, Menu, X, LogOut, Shield } from "lucide-react";
+import { ShoppingCart, User, Menu, X, LogOut } from "lucide-react";
+import logo from "@/assets/elibrary-logo.png";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useCart } from "@/hooks/useCart";
