@@ -867,6 +867,7 @@ const Admin = () => {
           )}
         </TabsContent>
         <UsersTab isAdmin={isAdmin} orders={orders} />
+        <AutomationTab ebooks={ebooks} isAdmin={isAdmin} />
         <TabsContent value="settings" className="mt-6">
           <Card>
             <CardHeader>
