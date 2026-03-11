@@ -5,6 +5,7 @@ import EbookCard from "@/components/EbookCard";
 import { CATEGORIES } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
   const { data: featured = [] } = useQuery({
