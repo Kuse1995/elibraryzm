@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Book } from "lucide-react";
+import logo from "@/assets/elibrary-logo.png";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { lovable } from "@/integrations/lovable";
@@ -31,7 +31,7 @@ const Auth = () => {
       <div className="container flex items-center justify-center min-h-[calc(100vh-12rem)] py-10">
         <Card className="w-full max-w-md text-center">
           <CardContent className="pt-8 pb-8 space-y-4">
-            <Book className="h-10 w-10 text-accent mx-auto" />
+            <img src={logo} alt="E Library" className="h-10 mx-auto" />
             <h2 className="font-display text-xl font-semibold">You're signed in!</h2>
             <p className="text-muted-foreground text-sm">{user.email}</p>
             <div className="flex gap-3 justify-center">
@@ -91,13 +91,13 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-2">
-            <Book className="h-10 w-10 text-accent" />
+            <img src={logo} alt="E Library" className="h-10" />
           </div>
           <CardTitle className="font-display text-2xl">
             {isLogin ? "Welcome Back" : "Create Account"}
           </CardTitle>
           <CardDescription>
-            {isLogin ? "Sign in to access your library" : "Join ELibrary and start your reading journey"}
+            {isLogin ? "Sign in to access your library" : "Join E Library and start your reading journey"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

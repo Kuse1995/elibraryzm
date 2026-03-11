@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
-import { Book, ShoppingCart, User, Menu, X, LogOut, Shield } from "lucide-react";
+import { ShoppingCart, User, Menu, X, LogOut } from "lucide-react";
+import logo from "@/assets/elibrary-logo.png";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useCart } from "@/hooks/useCart";
@@ -25,8 +26,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <Book className="h-7 w-7 text-accent" />
-            <span className="font-display text-xl font-bold text-primary">ELibrary</span>
+            <img src={logo} alt="E Library" className="h-8" />
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">
@@ -94,8 +94,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           <div className="grid gap-8 md:grid-cols-3">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Book className="h-6 w-6 text-accent" />
-                <span className="font-display text-lg font-bold">ELibrary</span>
+                <img src={logo} alt="E Library" className="h-8 brightness-0 invert" />
               </div>
               <p className="text-sm text-primary-foreground/70">Your Christian Digital Library — Inspiring faith through the written word.</p>
             </div>
@@ -114,7 +113,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             </div>
           </div>
           <div className="mt-8 pt-6 border-t border-primary-foreground/20 text-center text-sm text-primary-foreground/50">
-            © {new Date().getFullYear()} ELibrary. All rights reserved.
+            © {new Date().getFullYear()} E Library. All rights reserved.
           </div>
         </div>
       </footer>
