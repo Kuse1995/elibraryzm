@@ -207,7 +207,256 @@ const UsersTab = ({ isAdmin, orders }: { isAdmin: boolean; orders: any[] }) => {
   );
 };
 
-const Admin = () => {
+const AutomationTab = ({ ebooks, isAdmin }: { ebooks: Ebook[]; isAdmin: boolean }) => {
+  const queryClient = useQueryClient();
+  const [syncing, setSyncing] = useState(false);
+  const [generatingLink, setGeneratingLink] = useState<string | null>(null);
+  const [paymentLinks, setPaymentLinks] = useState<Record<string, string>>({});
+
+  const { data: automationEnabled } = useQuery({
+    queryKey: ["site-settings", "automation_enabled"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("site_settings").select("value").eq("key", "automation_enabled").single();
+      if (error) return "false";
+      return data.value;
+    },
+    enabled: isAdmin,
+  });
+
+  const { data: lastSync } = useQuery({
+    queryKey: ["site-settings", "automation_last_sync"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("site_settings").select("value").eq("key", "automation_last_sync").single();
+      if (error) return "";
+      return data.value;
+    },
+    enabled: isAdmin,
+  });
+
+  const toggleAutomation = async () => {
+    const newVal = automationEnabled === "true" ? "false" : "true";
+    const { error } = await supabase.from("site_settings").update({ value: newVal }).eq("key", "automation_enabled");
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success(`Automation ${newVal === "true" ? "enabled" : "disabled"}`);
+      queryClient.invalidateQueries({ queryKey: ["site-settings", "automation_enabled"] });
+    }
+  };
+
+  const syncCatalog = async () => {
+    setSyncing(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/automation-sync`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            action: "sync_catalog",
+            payload: {
+              products: ebooks
+                .filter((e) => e.approval_status === "approved")
+                .map((e) => ({
+                  id: e.id,
+                  title: e.title,
+                  author: e.author,
+                  price: e.price,
+                  category: e.category,
+                  description: e.description,
+                  cover_url: e.cover_url,
+                })),
+            },
+          }),
+        }
+      );
+      if (res.ok) {
+        toast.success("Catalog synced to automation platform!");
+        queryClient.invalidateQueries({ queryKey: ["site-settings", "automation_last_sync"] });
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Sync failed");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Sync failed");
+    }
+    setSyncing(false);
+  };
+
+  const generateLink = async (ebook: Ebook) => {
+    setGeneratingLink(ebook.id);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/automation-sync`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            action: "generate_payment_link",
+            payload: {
+              product_id: ebook.id,
+              title: ebook.title,
+              price: ebook.price,
+              description: ebook.description,
+            },
+          }),
+        }
+      );
+      const data = await res.json();
+      if (res.ok && data.link) {
+        setPaymentLinks((prev) => ({ ...prev, [ebook.id]: data.link }));
+        toast.success("Payment link generated!");
+      } else {
+        toast.error(data.error || "Failed to generate link");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to generate link");
+    }
+    setGeneratingLink(null);
+  };
+
+  const copyLink = (link: string) => {
+    navigator.clipboard.writeText(link);
+    toast.success("Link copied to clipboard!");
+  };
+
+  const approvedEbooks = ebooks.filter((e) => e.approval_status === "approved");
+
+  return (
+    <TabsContent value="automation" className="mt-6 space-y-6">
+      {/* Status card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Zap className="h-5 w-5" /> Automation Platform
+          </CardTitle>
+          <CardDescription>
+            Connect your catalog and sales to WhatsApp, Facebook & Instagram automation.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-base">Enable Automation</Label>
+              <p className="text-sm text-muted-foreground">
+                Automatically send sale notifications to your platform
+              </p>
+            </div>
+            <Switch
+              checked={automationEnabled === "true"}
+              onCheckedChange={toggleAutomation}
+            />
+          </div>
+          <div className="flex items-center justify-between border-t pt-4">
+            <div>
+              <p className="text-sm font-medium">Last Catalog Sync</p>
+              <p className="text-sm text-muted-foreground">
+                {lastSync ? new Date(lastSync).toLocaleString() : "Never synced"}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={syncCatalog}
+              disabled={syncing}
+              className="gap-2"
+            >
+              {syncing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              {syncing ? "Syncing..." : "Sync Catalog"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Payment Links */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Link className="h-5 w-5" /> Payment Links
+          </CardTitle>
+          <CardDescription>
+            Generate shareable payment links for WhatsApp and social media campaigns.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {approvedEbooks.length === 0 ? (
+            <p className="text-muted-foreground text-center py-6">No approved ebooks to generate links for.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Payment Link</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {approvedEbooks.map((ebook) => (
+                  <TableRow key={ebook.id}>
+                    <TableCell className="font-medium">{ebook.title}</TableCell>
+                    <TableCell>K{(ebook.price / 100).toLocaleString()}</TableCell>
+                    <TableCell>
+                      {paymentLinks[ebook.id] ? (
+                        <div className="flex items-center gap-2">
+                          <code className="text-xs bg-muted px-2 py-1 rounded max-w-[200px] truncate block">
+                            {paymentLinks[ebook.id]}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => copyLink(paymentLinks[ebook.id])}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={generatingLink === ebook.id}
+                        onClick={() => generateLink(ebook)}
+                        className="gap-1"
+                      >
+                        {generatingLink === ebook.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Link className="h-3 w-3" />
+                        )}
+                        Generate
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </TabsContent>
+  );
+};
+
+
   const { user, isAdmin, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
