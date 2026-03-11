@@ -26,8 +26,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <Book className="h-7 w-7 text-accent" />
-            <span className="font-display text-xl font-bold text-primary">ELibrary</span>
+            <img src={logo} alt="E Library" className="h-8" />
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">
