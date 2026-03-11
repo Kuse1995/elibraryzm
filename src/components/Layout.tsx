@@ -107,7 +107,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               <h4 className="font-display font-semibold mb-3">Quick Links</h4>
               <div className="space-y-2 text-sm text-primary-foreground/70">
                 <Link to="/browse" className="block hover:text-accent">Browse Ebooks</Link>
-                <Link to="/auth" className="block hover:text-accent">Sign In</Link>
+                {user ? (
+                  <Link to="/my-library" className="block hover:text-accent">My Library</Link>
+                ) : (
+                  <Link to="/auth" className="block hover:text-accent">Sign In</Link>
+                )}
               </div>
             </div>
             <div>
