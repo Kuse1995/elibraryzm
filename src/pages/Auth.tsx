@@ -91,7 +91,7 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-2">
-            <Book className="h-10 w-10 text-accent" />
+            <img src={logo} alt="E Library" className="h-10" />
           </div>
           <CardTitle className="font-display text-2xl">
             {isLogin ? "Welcome Back" : "Create Account"}
