@@ -90,9 +90,8 @@ const EbookDetail = () => {
     : ebook.price;
 
   const handleBuyNow = async () => {
-    const buyerEmail = user?.email || email;
-    if (!buyerEmail) {
-      toast.error("Please enter your email address");
+    if (!user) {
+      toast.error("Please sign in to purchase");
       return;
     }
     if (!phone || phone.length < 10) {
