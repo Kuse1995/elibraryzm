@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -16,8 +16,14 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get("redirect");
 
   if (user) {
+    if (redirectTo) {
+      navigate(redirectTo);
+      return null;
+    }
     return (
       <div className="container flex items-center justify-center min-h-[calc(100vh-12rem)] py-10">
         <Card className="w-full max-w-md text-center">

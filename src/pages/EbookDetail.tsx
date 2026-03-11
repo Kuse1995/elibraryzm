@@ -16,7 +16,6 @@ const EbookDetail = () => {
   const { user } = useAuth();
 
   const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"mtn" | "airtel">("mtn");
   const [loading, setLoading] = useState(false);
   const [includeUpsell, setIncludeUpsell] = useState(false);
@@ -90,9 +89,8 @@ const EbookDetail = () => {
     : ebook.price;
 
   const handleBuyNow = async () => {
-    const buyerEmail = user?.email || email;
-    if (!buyerEmail) {
-      toast.error("Please enter your email address");
+    if (!user) {
+      toast.error("Please sign in to purchase");
       return;
     }
     if (!phone || phone.length < 10) {
@@ -109,8 +107,8 @@ const EbookDetail = () => {
         body: {
           items,
           discountItems,
-          email: buyerEmail,
-          userId: user?.id || null,
+          email: user.email,
+          userId: user.id,
           paymentMethod,
           phone,
         },
@@ -203,78 +201,80 @@ const EbookDetail = () => {
           <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
             <h3 className="font-semibold">Buy Now</h3>
 
-            {!user && (
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
+            {!user ? (
+              <div className="text-center space-y-4 py-4">
+                <p className="text-muted-foreground">
+                  Create a free account or sign in to purchase. Your ebooks will be saved to your library forever.
+                </p>
+                <Link to={`/auth?redirect=/ebook/${id}`}>
+                  <Button size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                    Sign In to Purchase
+                  </Button>
+                </Link>
               </div>
-            )}
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="0977123456"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="0977123456"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
+                <div className="space-y-2">
+                  <Label>Payment Method</Label>
+                  <div className="flex gap-3">
+                    <Button
+                      type="button"
+                      variant={paymentMethod === "mtn" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPaymentMethod("mtn")}
+                      className={paymentMethod === "mtn" ? "bg-yellow-500 hover:bg-yellow-600 text-black" : ""}
+                    >
+                      MTN
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={paymentMethod === "airtel" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPaymentMethod("airtel")}
+                      className={paymentMethod === "airtel" ? "bg-red-600 hover:bg-red-700 text-white" : ""}
+                    >
+                      Airtel
+                    </Button>
+                  </div>
+                </div>
 
-            <div className="space-y-2">
-              <Label>Payment Method</Label>
-              <div className="flex gap-3">
                 <Button
-                  type="button"
-                  variant={paymentMethod === "mtn" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setPaymentMethod("mtn")}
-                  className={paymentMethod === "mtn" ? "bg-yellow-500 hover:bg-yellow-600 text-black" : ""}
+                  size="lg"
+                  className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+                  onClick={handleBuyNow}
+                  disabled={loading}
                 >
-                  MTN
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                      Processing...
+                    </>
+                  ) : (
+                    `Buy Now — K${(displayTotal / 100).toLocaleString()}`
+                  )}
                 </Button>
-                <Button
-                  type="button"
-                  variant={paymentMethod === "airtel" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setPaymentMethod("airtel")}
-                  className={paymentMethod === "airtel" ? "bg-red-600 hover:bg-red-700 text-white" : ""}
-                >
-                  Airtel
-                </Button>
-              </div>
-            </div>
 
-            <Button
-              size="lg"
-              className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
-              onClick={handleBuyNow}
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                  Processing...
-                </>
-              ) : (
-                `Buy Now — K${(displayTotal / 100).toLocaleString()}`
-              )}
-            </Button>
-
-            {includeUpsell && upsellEbook && (
-              <p className="text-xs text-muted-foreground text-center">
-                Includes "{upsellEbook.title}" at {discountPercent}% off
-              </p>
+                {includeUpsell && upsellEbook && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Includes "{upsellEbook.title}" at {discountPercent}% off
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>

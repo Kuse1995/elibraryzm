@@ -26,9 +26,9 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { items, discountItems, email, userId, paymentMethod, phone } = body;
 
-    if (!items?.length || !email || !phone || !paymentMethod) {
+    if (!items?.length || !email || !phone || !paymentMethod || !userId) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields: items, email, phone, paymentMethod" }),
+        JSON.stringify({ error: "Missing required fields: items, email, phone, paymentMethod, userId. Please sign in to purchase." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

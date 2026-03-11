@@ -174,50 +174,24 @@ const Downloads = () => {
     );
   }
 
-  // COMPLETED — need email from guest
-  if (!user && !emailSubmitted && ebooks.length === 0) {
-    return (
-      <div className="container py-10 max-w-2xl">
-        <Card>
-          <CardContent className="p-8 space-y-6">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
-            <h1 className="font-display text-2xl font-bold text-center">Payment Successful!</h1>
-            <p className="text-muted-foreground text-center">
-              Enter the email you used during checkout to access your downloads.
-            </p>
-            <form onSubmit={handleGuestSubmit} className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-1 block">Email Address</label>
-                <Input
-                  type="email"
-                  placeholder="Enter the email used at checkout"
-                  value={guestEmail}
-                  onChange={(e) => setGuestEmail(e.target.value)}
-                  required
-                />
-              </div>
-              {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={loading}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Access Downloads
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   // COMPLETED — show downloads
   return (
     <div className="container py-10 max-w-2xl">
       <div className="text-center mb-8">
         <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-3" />
-        <h1 className="font-display text-3xl font-bold mb-2">Your Downloads</h1>
+        <h1 className="font-display text-3xl font-bold mb-2">Payment Successful!</h1>
         <p className="text-muted-foreground">
-          Thank you for your purchase! Download your ebooks below.
+          Thank you for your purchase! Your ebooks are now in your library.
         </p>
         {reference && <p className="text-sm text-muted-foreground mt-1">Reference: {reference}</p>}
+        <Link to="/my-library">
+          <Button size="lg" className="mt-4 bg-accent text-accent-foreground hover:bg-accent/90 gap-2">
+            <BookOpen className="h-5 w-5" /> Go to My Library
+          </Button>
+        </Link>
+        <p className="text-sm text-muted-foreground mt-3">
+          You can always access your purchased ebooks from <strong>My Library</strong>.
+        </p>
       </div>
 
       {loading ? (
