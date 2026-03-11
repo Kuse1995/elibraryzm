@@ -59,6 +59,50 @@ Deno.serve(async (req) => {
         .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq("id", order.id);
       console.log(`Order ${order.id} updated to ${newStatus}`);
+
+      // Auto-notify automation platform on completed sales
+      if (newStatus === "completed") {
+        try {
+          const automationApiKey = Deno.env.get("AUTOMATION_API_KEY");
+          const { data: automationEnabled } = await supabase
+            .from("site_settings")
+            .select("value")
+            .eq("key", "automation_enabled")
+            .single();
+
+          if (automationApiKey && automationEnabled?.value === "true") {
+            // Fetch order items with ebook details
+            const { data: orderItems } = await supabase
+              .from("order_items")
+              .select("*, ebooks(*)")
+              .eq("order_id", order.id);
+
+            const items = (orderItems || []).map((item: any) => ({
+              title: item.ebooks?.title || "Unknown",
+              author: item.ebooks?.author || "Unknown",
+              price: item.price,
+            }));
+
+            await fetch("https://dzheddvoiauevcayifev.supabase.co/functions/v1/agent-api", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-api-key": automationApiKey,
+              },
+              body: JSON.stringify({
+                action: "record_sale",
+                customer_email: order.guest_email || "registered_user",
+                items,
+                total: order.total,
+                order_id: order.id,
+              }),
+            });
+            console.log(`Automation notified for order ${order.id}`);
+          }
+        } catch (autoErr) {
+          console.error("Automation sync failed (non-blocking):", autoErr);
+        }
+      }
     }
 
     return new Response(
