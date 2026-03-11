@@ -152,11 +152,13 @@ const EbookDetail = () => {
             <h1 className="font-display text-3xl md:text-4xl font-bold mb-2">{ebook.title}</h1>
             <p className="text-lg text-muted-foreground">by {ebook.author}</p>
           </div>
-          <div className="text-3xl font-bold text-accent">K{(ebook.price / 100).toLocaleString()}</div>
+          <div className="text-3xl font-bold text-accent">
+            {ebook.price === 0 ? "Free" : `K${(ebook.price / 100).toLocaleString()}`}
+          </div>
           <p className="text-muted-foreground leading-relaxed">{ebook.description}</p>
 
-          {/* Upsell Offer */}
-          {upsellEbook && (
+          {/* Upsell Offer — hide for free items */}
+          {ebook.price > 0 && upsellEbook && (
             <div className="border border-accent/30 rounded-lg p-4 bg-accent/5 space-y-3">
               <div className="flex items-center gap-2 text-accent font-semibold">
                 <Gift className="h-5 w-5" />
