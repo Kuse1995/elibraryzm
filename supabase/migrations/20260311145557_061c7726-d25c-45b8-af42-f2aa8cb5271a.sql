@@ -1,0 +1,1 @@
+INSERT INTO public.site_settings (key, value) VALUES ('automation_enabled', 'false'), ('automation_last_sync', '') ON CONFLICT (key) DO NOTHING;
