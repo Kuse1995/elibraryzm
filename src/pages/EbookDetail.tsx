@@ -16,9 +16,9 @@ const EbookDetail = () => {
   const { user } = useAuth();
 
   const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"mtn" | "airtel">("mtn");
   const [loading, setLoading] = useState(false);
+  const [includeUpsell, setIncludeUpsell] = useState(false);
   const [includeUpsell, setIncludeUpsell] = useState(false);
 
   const { data: ebook, isLoading } = useQuery({
