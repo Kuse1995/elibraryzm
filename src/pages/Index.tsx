@@ -51,11 +51,17 @@ const Index = () => {
                 Browse Ebooks <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
-            <Link to="/auth">
-              <Button size="lg" className="border border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 text-base px-8">
-                Sign Up Free
-              </Button>
-            </Link>
+            {user ? (
+              <div className="inline-flex items-center gap-2 border border-primary-foreground/30 rounded-lg px-8 py-2.5 text-primary-foreground text-base font-medium">
+                Welcome, {displayName} 👋
+              </div>
+            ) : (
+              <Link to="/auth">
+                <Button size="lg" className="border border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 text-base px-8">
+                  Sign Up Free
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </section>
