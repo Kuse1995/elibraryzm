@@ -456,7 +456,7 @@ const AutomationTab = ({ ebooks, isAdmin }: { ebooks: Ebook[]; isAdmin: boolean 
   );
 };
 
-
+const Admin = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
