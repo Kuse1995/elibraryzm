@@ -108,8 +108,8 @@ const EbookDetail = () => {
         body: {
           items,
           discountItems,
-          email: buyerEmail,
-          userId: user?.id || null,
+          email: user.email,
+          userId: user.id,
           paymentMethod,
           phone,
         },
