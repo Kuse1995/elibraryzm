@@ -226,12 +226,13 @@ const EbookDetail = () => {
                     }
                     setLoading(true);
                     try {
-                      const filePath = ebook.file_url.replace(/^\//, "").replace(/^ebook-files\//, "");
-                      const { data: urlData, error } = await supabase.storage
-                        .from("ebook-files")
-                        .createSignedUrl(filePath, 900);
-                      if (error || !urlData?.signedUrl) throw new Error("Could not generate download link");
-                      const response = await fetch(urlData.signedUrl);
+                      const { data: linkData, error } = await supabase.functions.invoke("download-link", {
+                        body: { ebookId: ebook.id },
+                      });
+                      if (error || linkData?.error || !linkData?.download_url) {
+                        throw new Error(linkData?.error || "Could not generate download link");
+                      }
+                      const response = await fetch(linkData.download_url);
                       if (!response.ok) throw new Error("Download failed");
                       const blob = await response.blob();
                       const objectUrl = URL.createObjectURL(blob);
