@@ -23,7 +23,7 @@ const MyLibrary = () => {
       const withSignedUrls = await Promise.all(
         (data || []).map(async (item: any) => {
           if (item.ebook?.file_url) {
-            const filePath = item.ebook.file_url.replace(/^\//, "");
+            const filePath = item.ebook.file_url.replace(/^\//, "").replace(/^ebook-files\//, "");
             const { data: urlData } = await supabase.storage
               .from("ebook-files")
               .createSignedUrl(filePath, 900);
