@@ -226,7 +226,7 @@ const EbookDetail = () => {
                     }
                     setLoading(true);
                     try {
-                      const filePath = ebook.file_url.replace(/^\//, "");
+                      const filePath = ebook.file_url.replace(/^\//, "").replace(/^ebook-files\//, "");
                       const { data: urlData, error } = await supabase.storage
                         .from("ebook-files")
                         .createSignedUrl(filePath, 900);
