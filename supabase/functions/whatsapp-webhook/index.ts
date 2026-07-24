@@ -5,7 +5,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const GEMINI_MODEL = "gemini-2.5-flash";
+const KIMI_MODEL = "kimi-k3";
+const KIMI_BASE = "https://api.moonshot.ai/v1";
 const LENCO_API_BASE = "https://api.lenco.co/access/v2";
 const PUBLIC_ORIGIN = Deno.env.get("PUBLIC_APP_URL") || "https://elibraryzm.lovable.app";
 
@@ -376,33 +377,28 @@ async function createLencoOrder(
 }
 
 async function askGemini(system: string, history: { role: string; text: string }[], userMsg: string): Promise<string> {
-  const key = Deno.env.get("GEMINI_API_KEY");
+  const key = Deno.env.get("MOONSHOT_API_KEY");
   if (!key) return "The assistant is temporarily unavailable.";
-  const contents = [
-    ...history.map((h) => ({ role: h.role === "assistant" ? "model" : "user", parts: [{ text: h.text }] })),
-    { role: "user", parts: [{ text: userMsg }] },
+  const messages = [
+    { role: "system", content: system },
+    ...history.map((h) => ({ role: h.role === "assistant" ? "assistant" : "user", content: h.text })),
+    { role: "user", content: userMsg },
   ];
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { role: "system", parts: [{ text: system }] },
-        contents,
-        generationConfig: { temperature: 0.6, maxOutputTokens: 400 },
-      }),
-    },
-  );
+  const res = await fetch(`${KIMI_BASE}/chat/completions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      model: KIMI_MODEL,
+      reasoning_effort: "low",
+      messages,
+    }),
+  });
   if (!res.ok) {
-    console.error("gemini error", res.status, await res.text());
+    console.error("kimi error", res.status, await res.text());
     return "Sorry, I couldn't reach my assistant right now.";
   }
   const data = await res.json();
-  return (
-    data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).filter(Boolean).join("\n").trim() ||
-    "Sorry, I didn't catch that."
-  );
+  return (data?.choices?.[0]?.message?.content ?? "").trim() || "Sorry, I didn't catch that.";
 }
 
 function twiml(message: string) {
