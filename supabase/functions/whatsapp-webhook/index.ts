@@ -127,20 +127,30 @@ Deno.serve(async (req) => {
         reply = "Please tell me which book number to buy. Reply CATALOG to see the list, then e.g. BUY 1";
       } else {
         state.cart = picked.map((b) => ({ ebookId: b.id, discounted: false }));
-        // Pick upsell suggestion (different book, prefer same category)
-        const cartIds = new Set(state.cart.map((c) => c.ebookId));
-        const upsell =
-          bookList.find((b) => !cartIds.has(b.id) && b.price > 0 && picked.some((p) => p.category === b.category)) ||
-          bookList.find((b) => !cartIds.has(b.id) && b.price > 0);
-        if (upsell) {
+        const cartTotal = cartTotalCents(state.cart, bookList, discountPercent);
+        if (cartTotal === 0) {
+          // All-free order — deliver immediately, skip upsell + payment
+          reply = await fulfillFreeOrder(supabase, state.cart, bookList, from);
+          state.cart = [];
+          state.stage = "idle";
+          state.pending_order_id = null;
+          state.upsell_ebook_id = null;
+        } else {
+          // Pick upsell suggestion (different book, prefer same category, must be paid)
+          const cartIds = new Set(state.cart.map((c) => c.ebookId));
+          const upsell =
+            bookList.find((b) => !cartIds.has(b.id) && b.price > 0 && picked.some((p) => p.category === b.category)) ||
+            bookList.find((b) => !cartIds.has(b.id) && b.price > 0);
+          if (upsell) {
           state.upsell_ebook_id = upsell.id;
           state.stage = "confirm_upsell";
           const orig = money(upsell.price);
           const disc = money(Math.floor(upsell.price * (100 - discountPercent) / 100));
           reply = `Great choice! 🎉\n\n${cartSummary(state.cart, bookList, discountPercent)}\n\n📚 *Special offer:* Add "${upsell.title}" by ${upsell.author} for *${disc}* (was ${orig}, ${discountPercent}% off)?\n\nReply YES to add it, or NO to skip.`;
-        } else {
+          } else {
           state.stage = "awaiting_payment_details";
           reply = `${cartSummary(state.cart, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 0977xxxxxxx*\n• *AIRTEL 0977xxxxxxx*`;
+          }
         }
       }
     }
@@ -155,8 +165,14 @@ Deno.serve(async (req) => {
       reply = `Added! ✅\n\n${cartSummary(state.cart!, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 0977xxxxxxx*\n• *AIRTEL 0977xxxxxxx*`;
     } else if (state.stage === "confirm_upsell" && /^(no|n|skip|nope)$/i.test(lower)) {
       state.upsell_ebook_id = null;
-      state.stage = "awaiting_payment_details";
-      reply = `No worries.\n\n${cartSummary(state.cart!, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 0977xxxxxxx*\n• *AIRTEL 0977xxxxxxx*`;
+      if (cartTotalCents(state.cart!, bookList, discountPercent) === 0) {
+        reply = await fulfillFreeOrder(supabase, state.cart!, bookList, from);
+        state.cart = [];
+        state.stage = "idle";
+      } else {
+        state.stage = "awaiting_payment_details";
+        reply = `No worries.\n\n${cartSummary(state.cart!, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 0977xxxxxxx*\n• *AIRTEL 0977xxxxxxx*`;
+      }
     }
 
     // Payment: MTN/AIRTEL <phone>
@@ -289,6 +305,84 @@ function cartSummary(
     lines.push(`• ${b.title} — ${money(price)}${item.discounted ? ` (${discountPercent}% off)` : ""}`);
   }
   lines.push(`\n*Total: ${money(total)}*`);
+  return lines.join("\n");
+}
+
+function cartTotalCents(
+  cart: { ebookId: string; discounted: boolean }[],
+  books: Book[],
+  discountPercent: number,
+) {
+  let total = 0;
+  for (const item of cart) {
+    const b = books.find((x) => x.id === item.ebookId);
+    if (!b) continue;
+    const price = item.discounted
+      ? Math.floor(b.price * (100 - discountPercent) / 100)
+      : b.price;
+    total += price;
+  }
+  return total;
+}
+
+function normalizeFilePath(fileUrl: string) {
+  let path = fileUrl.trim().split("?")[0].split("#")[0];
+  const marker = "/storage/v1/object/";
+  const idx = path.indexOf(marker);
+  if (idx >= 0) {
+    path = path.slice(idx + marker.length);
+    path = path.replace(/^(public|sign)\/ebook-files\//, "");
+  }
+  path = path.replace(/^\/+/, "");
+  while (path.startsWith("ebook-files/")) path = path.slice("ebook-files/".length);
+  return decodeURIComponent(path);
+}
+
+async function fulfillFreeOrder(
+  supabase: any,
+  cart: { ebookId: string; discounted: boolean }[],
+  books: Book[],
+  waPhone: string,
+): Promise<string> {
+  const ids = [...new Set(cart.map((c) => c.ebookId))];
+  const { data: ebooks } = await supabase
+    .from("ebooks")
+    .select("id, title, author, file_url, price")
+    .in("id", ids);
+  if (!ebooks?.length) return "Sorry, I couldn't find those books. Reply CATALOG to try again.";
+
+  const reference = `wa-free-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+  const { data: order } = await supabase
+    .from("orders")
+    .insert({
+      user_id: null,
+      guest_email: `${waPhone.replace(/\D/g, "")}@whatsapp.local`,
+      whatsapp_phone: waPhone,
+      total: 0,
+      status: "completed",
+      payment_reference: reference,
+      items: ebooks.map((e: any) => ({ id: e.id, title: e.title, price: 0 })),
+    })
+    .select()
+    .single();
+  if (order) {
+    await supabase.from("order_items").insert(
+      ebooks.map((e: any) => ({ order_id: order.id, ebook_id: e.id, price: 0 })),
+    );
+  }
+
+  const lines: string[] = ["🎉 Here are your free downloads (valid 24 hours):\n"];
+  for (const e of ebooks as any[]) {
+    if (!e.file_url) continue;
+    const path = normalizeFilePath(e.file_url);
+    const { data: signed } = await supabase.storage
+      .from("ebook-files")
+      .createSignedUrl(path, 60 * 60 * 24);
+    if (signed?.signedUrl) {
+      lines.push(`📖 *${e.title}* — ${e.author}\n${signed.signedUrl}\n`);
+    }
+  }
+  lines.push("Enjoy! 🙏 Reply CATALOG to browse more books.");
   return lines.join("\n");
 }
 
