@@ -10,6 +10,42 @@ const KIMI_BASE = "https://api.moonshot.ai/v1";
 const KIMI_TIMEOUT_MS = 6500;
 const LENCO_API_BASE = "https://api.lenco.co/access/v2";
 const PUBLIC_ORIGIN = Deno.env.get("PUBLIC_APP_URL") || "https://elibraryzm.lovable.app";
+const HUMAN_HANDOFF_CONTACT = "Abraham on +260 972 064 502";
+const HUMAN_HANDOFF_REGEX = /\b(human|agent|real person|manager|owner|abraham|complain|complaint|refund|speak to (a )?(person|human|someone|manager|human being)|talk to (a )?(person|human|someone|manager|human being)|call me|call back|phone me|whatsapp abraham)\b/i;
+
+function classifyIntent(text: string, stage?: string): "buying" | "browsing" | "human_request" | "other" {
+  const t = (text || "").toLowerCase().trim();
+  if (HUMAN_HANDOFF_REGEX.test(t)) return "human_request";
+  if (stage === "awaiting_payment_details" || stage === "payment_pending" || stage === "confirm_upsell") return "buying";
+  if (/^(buy|mtn|airtel|pay|order)\b/.test(t)) return "buying";
+  if (/^(catalog|catalogue|list|books|menu|browse|show)\b/.test(t)) return "browsing";
+  if (/\b(book|read|devotional|prayer|marriage|youth|children|worship|faith|bible|christian|verse|topic|recommend|suggest)\b/.test(t)) return "browsing";
+  if (/^(hi|hie|hello|hey|good morning|good afternoon|good evening|thanks|thank you)$/i.test(t)) return "browsing";
+  return "other";
+}
+
+async function logWaMessage(
+  supabase: any,
+  phone: string,
+  direction: "in" | "out",
+  body: string,
+  intent: string,
+  profileName: string | null,
+  mediaCount = 0,
+) {
+  try {
+    await supabase.from("whatsapp_messages").insert({
+      phone_e164: phone,
+      profile_name: profileName,
+      direction,
+      body: body || "",
+      intent,
+      media_count: mediaCount,
+    });
+  } catch (e) {
+    console.error("logWaMessage failed", e);
+  }
+}
 
 type Book = {
   id: string;
@@ -67,14 +103,18 @@ Deno.serve(async (req) => {
     const contentType = req.headers.get("content-type") ?? "";
     let from = "";
     let body = "";
+    let profileName: string | null = null;
     if (contentType.includes("application/x-www-form-urlencoded")) {
       const form = await req.formData();
       from = String(form.get("From") ?? "").replace(/^whatsapp:/, "");
       body = String(form.get("Body") ?? "").trim();
+      const pn = String(form.get("ProfileName") ?? "").trim();
+      profileName = pn || null;
     } else {
       const j = await req.json();
       from = String(j.From ?? "").replace(/^whatsapp:/, "");
       body = String(j.Body ?? "").trim();
+      profileName = (j.ProfileName ? String(j.ProfileName).trim() : null) || null;
     }
     if (!from) return twiml("");
 
@@ -99,7 +139,14 @@ Deno.serve(async (req) => {
     // Ensure subscriber row exists
     await supabase
       .from("whatsapp_subscribers")
-      .upsert({ phone_e164: from, source: "whatsapp_inbound" } as any, { onConflict: "phone_e164" });
+      .upsert(
+        {
+          phone_e164: from,
+          source: "whatsapp_inbound",
+          ...(profileName ? { display_name: profileName } : {}),
+        } as any,
+        { onConflict: "phone_e164" },
+      );
 
     // Load conversation state
     const { data: convo } = await supabase
@@ -110,6 +157,27 @@ Deno.serve(async (req) => {
     const state: ConvoState = (convo?.state as ConvoState) ?? {};
     const history = state.history ?? [];
     state.cart = state.cart ?? [];
+
+    // Log inbound message
+    const inboundIntent = classifyIntent(body, state.stage);
+    await logWaMessage(supabase, from, "in", body, inboundIntent, profileName);
+
+    // Human handoff — short-circuit before other logic (but not while a payment prompt is live)
+    if (inboundIntent === "human_request" && state.stage !== "payment_pending") {
+      const handoff = `No problem — I'll pass you on to a human. 🙏\n\nPlease contact *${HUMAN_HANDOFF_CONTACT}* on WhatsApp or by call. He'll take it from here.\n\nIf you'd like to keep browsing books, reply *CATALOG* anytime.`;
+      await supabase
+        .from("whatsapp_conversations")
+        .upsert(
+          {
+            phone_e164: from,
+            state: { ...state, history: [...history, { role: "user", text: body }, { role: "assistant", text: handoff }].slice(-20) },
+            last_message_at: new Date().toISOString(),
+          } as any,
+          { onConflict: "phone_e164" },
+        );
+      await logWaMessage(supabase, from, "out", handoff, "human_request", profileName);
+      return twiml(handoff);
+    }
 
     // Fetch approved books to ground the agent
     const { data: books } = await supabase
@@ -345,6 +413,10 @@ Remember: short, warm, human. One clear next step. Only real books from the cata
         } as any,
         { onConflict: "phone_e164" },
       );
+
+    // Log outbound reply
+    const outboundIntent = classifyIntent(body, state.stage);
+    await logWaMessage(supabase, from, "out", reply, outboundIntent, profileName, extraMessages.reduce((n, m) => n + (m.media?.length ?? 0), 0));
 
     return twiml(reply, extraMessages);
   } catch (err) {
