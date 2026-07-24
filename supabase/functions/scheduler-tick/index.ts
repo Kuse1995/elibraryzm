@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const GEMINI_TEXT_MODEL = "gemini-2.5-flash";
-const GEMINI_IMAGE_MODEL = "gemini-2.5-flash-image";
+const GEMINI_IMAGE_MODEL = "gemini-3.1-flash-lite-image";
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 const directionGuidance: Record<string, string> = {
