@@ -427,9 +427,43 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_messages: {
+        Row: {
+          body: string
+          created_at: string
+          direction: string
+          id: string
+          intent: string
+          media_count: number
+          phone_e164: string
+          profile_name: string | null
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          direction: string
+          id?: string
+          intent?: string
+          media_count?: number
+          phone_e164: string
+          profile_name?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          intent?: string
+          media_count?: number
+          phone_e164?: string
+          profile_name?: string | null
+        }
+        Relationships: []
+      }
       whatsapp_subscribers: {
         Row: {
           created_at: string
+          display_name: string | null
           id: string
           opted_in_at: string
           opted_out_at: string | null
@@ -439,6 +473,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          display_name?: string | null
           id?: string
           opted_in_at?: string
           opted_out_at?: string | null
@@ -448,6 +483,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          display_name?: string | null
           id?: string
           opted_in_at?: string
           opted_out_at?: string | null
