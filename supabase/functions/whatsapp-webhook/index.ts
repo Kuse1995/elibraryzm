@@ -165,8 +165,14 @@ Deno.serve(async (req) => {
       reply = `Added! ✅\n\n${cartSummary(state.cart!, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 0977xxxxxxx*\n• *AIRTEL 0977xxxxxxx*`;
     } else if (state.stage === "confirm_upsell" && /^(no|n|skip|nope)$/i.test(lower)) {
       state.upsell_ebook_id = null;
-      state.stage = "awaiting_payment_details";
-      reply = `No worries.\n\n${cartSummary(state.cart!, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 0977xxxxxxx*\n• *AIRTEL 0977xxxxxxx*`;
+      if (cartTotalCents(state.cart!, bookList, discountPercent) === 0) {
+        reply = await fulfillFreeOrder(supabase, state.cart!, bookList, from);
+        state.cart = [];
+        state.stage = "idle";
+      } else {
+        state.stage = "awaiting_payment_details";
+        reply = `No worries.\n\n${cartSummary(state.cart!, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 0977xxxxxxx*\n• *AIRTEL 0977xxxxxxx*`;
+      }
     }
 
     // Payment: MTN/AIRTEL <phone>
