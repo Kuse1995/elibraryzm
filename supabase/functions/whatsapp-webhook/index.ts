@@ -127,20 +127,30 @@ Deno.serve(async (req) => {
         reply = "Please tell me which book number to buy. Reply CATALOG to see the list, then e.g. BUY 1";
       } else {
         state.cart = picked.map((b) => ({ ebookId: b.id, discounted: false }));
-        // Pick upsell suggestion (different book, prefer same category)
-        const cartIds = new Set(state.cart.map((c) => c.ebookId));
-        const upsell =
-          bookList.find((b) => !cartIds.has(b.id) && b.price > 0 && picked.some((p) => p.category === b.category)) ||
-          bookList.find((b) => !cartIds.has(b.id) && b.price > 0);
-        if (upsell) {
+        const cartTotal = cartTotalCents(state.cart, bookList, discountPercent);
+        if (cartTotal === 0) {
+          // All-free order — deliver immediately, skip upsell + payment
+          reply = await fulfillFreeOrder(supabase, state.cart, bookList, from);
+          state.cart = [];
+          state.stage = "idle";
+          state.pending_order_id = null;
+          state.upsell_ebook_id = null;
+        } else {
+          // Pick upsell suggestion (different book, prefer same category, must be paid)
+          const cartIds = new Set(state.cart.map((c) => c.ebookId));
+          const upsell =
+            bookList.find((b) => !cartIds.has(b.id) && b.price > 0 && picked.some((p) => p.category === b.category)) ||
+            bookList.find((b) => !cartIds.has(b.id) && b.price > 0);
+          if (upsell) {
           state.upsell_ebook_id = upsell.id;
           state.stage = "confirm_upsell";
           const orig = money(upsell.price);
           const disc = money(Math.floor(upsell.price * (100 - discountPercent) / 100));
           reply = `Great choice! 🎉\n\n${cartSummary(state.cart, bookList, discountPercent)}\n\n📚 *Special offer:* Add "${upsell.title}" by ${upsell.author} for *${disc}* (was ${orig}, ${discountPercent}% off)?\n\nReply YES to add it, or NO to skip.`;
-        } else {
+          } else {
           state.stage = "awaiting_payment_details";
           reply = `${cartSummary(state.cart, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 0977xxxxxxx*\n• *AIRTEL 0977xxxxxxx*`;
+          }
         }
       }
     }
