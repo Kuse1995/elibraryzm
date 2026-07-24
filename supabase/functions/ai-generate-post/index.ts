@@ -6,9 +6,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const TEXT_MODEL = "google/gemini-2.5-flash";
-const IMAGE_MODEL = "google/gemini-2.5-flash-image";
-const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1";
+const GEMINI_TEXT_MODEL = "gemini-2.5-flash";
+const GEMINI_IMAGE_MODEL = "gemini-3.1-flash-lite-image";
+const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 type GenerateBody = {
   ebookId?: string | null;
@@ -30,9 +30,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
+    const apiKey = Deno.env.get("GEMINI_API_KEY");
     if (!apiKey) {
-      return json({ error: "LOVABLE_API_KEY not configured" }, 500);
+      return json({ error: "GEMINI_API_KEY not configured" }, 500);
     }
 
     const authHeader = req.headers.get("Authorization");
@@ -77,27 +77,25 @@ Write ONE post (max ~180 words) with:
 - 3-6 relevant hashtags on the last line
 Return plain text only, no JSON, no markdown fences.`;
 
-    const captionRes = await fetch(`${AI_GATEWAY}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+    const captionRes = await fetch(
+      `${GEMINI_BASE}/${GEMINI_TEXT_MODEL}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: captionPrompt }] }],
+          generationConfig: { temperature: 0.9, maxOutputTokens: 800 },
+        }),
       },
-      body: JSON.stringify({
-        model: TEXT_MODEL,
-        messages: [{ role: "user", content: captionPrompt }],
-        temperature: 0.9,
-      }),
-    });
+    );
     if (!captionRes.ok) {
       const t = await captionRes.text();
-      console.error("Caption error", captionRes.status, t);
-      if (captionRes.status === 429) return json({ error: "Rate limit hit. Please try again shortly." }, 429);
-      if (captionRes.status === 402) return json({ error: "AI credits exhausted. Add credits in workspace settings." }, 402);
+      console.error("Gemini caption error", captionRes.status, t);
       return json({ error: "Caption generation failed", details: t }, 502);
     }
     const captionData = await captionRes.json();
-    const caption: string = captionData?.choices?.[0]?.message?.content?.trim() ?? "";
+    const caption: string =
+      captionData?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).filter(Boolean).join("\n").trim() ?? "";
 
     // ---------- Images ----------
     const imagePromptBase = `Create a striking social media image for a Christian ebook post.
@@ -107,28 +105,28 @@ High quality, warm inspirational lighting, clear focal point, minimal text overl
 
     const images: string[] = [];
     for (let i = 0; i < imageCount; i++) {
-      const imgRes = await fetch(`${AI_GATEWAY}/chat/completions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
+      const imgRes = await fetch(
+        `${GEMINI_BASE}/${GEMINI_IMAGE_MODEL}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: `${imagePromptBase}\nVariation ${i + 1} of ${imageCount}.` }] }],
+            generationConfig: { responseModalities: ["IMAGE", "TEXT"] },
+          }),
         },
-        body: JSON.stringify({
-          model: IMAGE_MODEL,
-          messages: [
-            { role: "user", content: `${imagePromptBase}\nVariation ${i + 1} of ${imageCount}.` },
-          ],
-          modalities: ["image", "text"],
-        }),
-      });
+      );
       if (!imgRes.ok) {
         const t = await imgRes.text();
-        console.error("Image error", imgRes.status, t);
+        console.error("Gemini image error", imgRes.status, t);
         continue;
       }
       const imgData = await imgRes.json();
-      const imgUrl = imgData?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-      if (imgUrl) images.push(imgUrl);
+      const parts = imgData?.candidates?.[0]?.content?.parts ?? [];
+      const inline = parts.find((p: any) => p.inlineData || p.inline_data);
+      const b64 = inline?.inlineData?.data ?? inline?.inline_data?.data;
+      const mime = inline?.inlineData?.mimeType ?? inline?.inline_data?.mime_type ?? "image/png";
+      if (b64) images.push(`data:${mime};base64,${b64}`);
     }
 
     return json({ caption, images, direction, ebookId: body.ebookId ?? null });
