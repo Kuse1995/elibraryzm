@@ -37,6 +37,20 @@ const Cart = () => {
       return;
     }
 
+    // Zambian prefix / operator sanity check (avoid Lenco "wrong operator" failures)
+    const normalized = phone.replace(/^\+?260/, "0").replace(/\D/g, "");
+    const prefix = normalized.slice(0, 3);
+    const mtnPrefixes = ["096", "076"];
+    const airtelPrefixes = ["097", "077"];
+    if (paymentMethod === "mtn" && !mtnPrefixes.includes(prefix)) {
+      toast.error("That doesn't look like an MTN number. MTN numbers start with 096 or 076.");
+      return;
+    }
+    if (paymentMethod === "airtel" && !airtelPrefixes.includes(prefix)) {
+      toast.error("That doesn't look like an Airtel number. Airtel numbers start with 097 or 077.");
+      return;
+    }
+
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("initiate-payment", {
@@ -45,11 +59,29 @@ const Cart = () => {
           email,
           userId: user?.id || null,
           paymentMethod,
-          phone,
+          phone: normalized,
         },
       });
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        // Try to read the real reason from the edge function body
+        try {
+          const ctx: any = (error as any).context;
+          if (ctx?.text) {
+            const body = await ctx.text();
+            const parsed = JSON.parse(body);
+            throw new Error(parsed.error || parsed.failure_reason || error.message);
+          }
+        } catch (parseErr: any) {
+          if (parseErr?.message) throw parseErr;
+        }
+        throw new Error(error.message);
+      }
+
+      if (data?.status === "failed") {
+        toast.error(data.error || data.failure_reason || "Payment failed. Please try again.");
+        return;
+      }
 
       if (data.status === "successful") {
         clearCart();

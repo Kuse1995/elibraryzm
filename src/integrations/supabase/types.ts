@@ -166,6 +166,7 @@ export type Database = {
       orders: {
         Row: {
           created_at: string
+          failure_reason: string | null
           guest_email: string | null
           id: string
           items: Json
@@ -178,6 +179,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          failure_reason?: string | null
           guest_email?: string | null
           id?: string
           items?: Json
@@ -190,6 +192,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          failure_reason?: string | null
           guest_email?: string | null
           id?: string
           items?: Json
