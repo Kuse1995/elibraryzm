@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
 
     // CATALOG / LIST
     else if (/^(catalog|catalogue|list|books|menu)$/i.test(lower)) {
-      reply = formatCatalog(bookList);
+      reply = formatCatalogShort(bookList);
     }
 
     // BUY <numbers> — accepts "BUY 1", "BUY 1 3", "BUY 1,3"
@@ -258,6 +258,17 @@ function formatCatalog(books: Book[]) {
       return `${i + 1}. *${b.title}* — ${b.author} · ${b.category} · ${priceLabel}${desc ? `\n   ${desc}` : ""}`;
     })
     .join("\n");
+}
+
+function formatCatalogShort(books: Book[]) {
+  if (!books.length) return "(catalog empty)";
+  return (
+    "📖 *E Library catalog*\n\n" +
+    books
+      .map((b, i) => `${i + 1}. ${b.title} — ${b.author} · ${b.price > 0 ? money(b.price) : "Free"}`)
+      .join("\n") +
+    "\n\nReply *BUY <number>* to purchase, or ask me for a recommendation."
+  );
 }
 
 function cartSummary(
