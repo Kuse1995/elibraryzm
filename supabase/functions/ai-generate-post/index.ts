@@ -6,7 +6,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const GEMINI_TEXT_MODEL = "gemini-2.5-flash";
+const KIMI_TEXT_MODEL = "kimi-k3";
+const KIMI_BASE = "https://api.moonshot.ai/v1";
 const GEMINI_IMAGE_MODEL = "gemini-3.1-flash-lite-image";
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
@@ -30,10 +31,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const apiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!apiKey) {
-      return json({ error: "GEMINI_API_KEY not configured" }, 500);
-    }
+    const geminiKey = Deno.env.get("GEMINI_API_KEY");
+    const moonshotKey = Deno.env.get("MOONSHOT_API_KEY");
+    if (!geminiKey) return json({ error: "GEMINI_API_KEY not configured" }, 500);
+    if (!moonshotKey) return json({ error: "MOONSHOT_API_KEY not configured" }, 500);
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
@@ -77,25 +78,25 @@ Write ONE post (max ~180 words) with:
 - 3-6 relevant hashtags on the last line
 Return plain text only, no JSON, no markdown fences.`;
 
-    const captionRes = await fetch(
-      `${GEMINI_BASE}/${GEMINI_TEXT_MODEL}:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: captionPrompt }] }],
-          generationConfig: { temperature: 0.9, maxOutputTokens: 800 },
-        }),
+    const captionRes = await fetch(`${KIMI_BASE}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${moonshotKey}`,
       },
-    );
+      body: JSON.stringify({
+        model: KIMI_TEXT_MODEL,
+        reasoning_effort: "low",
+        messages: [{ role: "user", content: captionPrompt }],
+      }),
+    });
     if (!captionRes.ok) {
       const t = await captionRes.text();
-      console.error("Gemini caption error", captionRes.status, t);
+      console.error("Kimi caption error", captionRes.status, t);
       return json({ error: "Caption generation failed", details: t }, 502);
     }
     const captionData = await captionRes.json();
-    const caption: string =
-      captionData?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).filter(Boolean).join("\n").trim() ?? "";
+    const caption: string = (captionData?.choices?.[0]?.message?.content ?? "").trim();
 
     // ---------- Images ----------
     const imagePromptBase = `Create a striking social media image for a Christian ebook post.
@@ -106,7 +107,7 @@ High quality, warm inspirational lighting, clear focal point, minimal text overl
     const images: string[] = [];
     for (let i = 0; i < imageCount; i++) {
       const imgRes = await fetch(
-        `${GEMINI_BASE}/${GEMINI_IMAGE_MODEL}:generateContent?key=${apiKey}`,
+        `${GEMINI_BASE}/${GEMINI_IMAGE_MODEL}:generateContent?key=${geminiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
