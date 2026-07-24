@@ -7,6 +7,7 @@ const corsHeaders = {
 
 const KIMI_MODEL = "kimi-k3";
 const KIMI_BASE = "https://api.moonshot.ai/v1";
+const KIMI_TIMEOUT_MS = 6500;
 const LENCO_API_BASE = "https://api.lenco.co/access/v2";
 const PUBLIC_ORIGIN = Deno.env.get("PUBLIC_APP_URL") || "https://elibraryzm.lovable.app";
 
@@ -115,6 +116,17 @@ Deno.serve(async (req) => {
       state.pending_order_id = null;
       state.upsell_ebook_id = null;
       reply = "Cart cleared. What would you like to explore? Ask for a topic (e.g. 'prayer', 'marriage', 'youth') or reply CATALOG to see books.";
+    }
+
+    // Quick greetings should never wait on AI — Twilio can drop slow webhook replies.
+    else if (/^(hi|hie|hello|hey|bello|good morning|good afternoon|good evening)$/i.test(lower) && state.stage !== "confirm_upsell") {
+      if (state.stage === "payment_pending") {
+        reply = "Hi, I'm here. Your payment is still being checked — once it is confirmed, I'll send the download link here. If you want to start over, reply CANCEL.";
+      } else if (state.stage === "awaiting_payment_details" && state.cart.length > 0) {
+        reply = `${cartSummary(state.cart, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 0977xxxxxxx*\n• *AIRTEL 0977xxxxxxx*`;
+      } else {
+        reply = `Hi there! 👋 I'm Grace from E Library.\n\nReply *CATALOG* to see all ${bookList.length} books, or tell me what kind of Christian book you're looking for.`;
+      }
     }
 
     // Recovery: old free-resource carts could be left waiting for payment.
@@ -234,7 +246,7 @@ Deno.serve(async (req) => {
           ? "\n\nAn order is awaiting payment approval. Reassure them and offer to help."
           : "";
 
-      reply = await askGemini(
+      reply = await askKimi(
         `You are "Grace" — a warm, friendly Zambian shop assistant for *E Library*, a Christian ebook store. You chat on WhatsApp like a real person, not a bot.
 
 PERSONALITY
@@ -496,29 +508,39 @@ async function createLencoOrder(
   return { orderId: order.id, total };
 }
 
-async function askGemini(system: string, history: { role: string; text: string }[], userMsg: string): Promise<string> {
+async function askKimi(system: string, history: { role: string; text: string }[], userMsg: string): Promise<string> {
   const key = Deno.env.get("MOONSHOT_API_KEY");
   if (!key) return "The assistant is temporarily unavailable.";
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), KIMI_TIMEOUT_MS);
   const messages = [
     { role: "system", content: system },
     ...history.map((h) => ({ role: h.role === "assistant" ? "assistant" : "user", content: h.text })),
     { role: "user", content: userMsg },
   ];
-  const res = await fetch(`${KIMI_BASE}/chat/completions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-    body: JSON.stringify({
-      model: KIMI_MODEL,
-      reasoning_effort: "low",
-      messages,
-    }),
-  });
-  if (!res.ok) {
-    console.error("kimi error", res.status, await res.text());
-    return "Sorry, I couldn't reach my assistant right now.";
+  try {
+    const res = await fetch(`${KIMI_BASE}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: KIMI_MODEL,
+        reasoning_effort: "low",
+        messages,
+      }),
+    });
+    if (!res.ok) {
+      console.error("kimi error", res.status, await res.text());
+      return "I'm here, but my assistant is slow right now. Reply *CATALOG* to browse books, or *BUY <number>* if you already know the book you want.";
+    }
+    const data = await res.json();
+    return (data?.choices?.[0]?.message?.content ?? "").trim() || "I'm here. Reply *CATALOG* to browse books, or tell me what kind of Christian book you're looking for.";
+  } catch (err) {
+    console.error("kimi timeout/error", err);
+    return "I'm here, but taking a bit long to think. Reply *CATALOG* to browse books, or tell me the topic you need help with.";
+  } finally {
+    clearTimeout(timeoutId);
   }
-  const data = await res.json();
-  return (data?.choices?.[0]?.message?.content ?? "").trim() || "Sorry, I didn't catch that.";
 }
 
 function twiml(message: string) {
