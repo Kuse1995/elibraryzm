@@ -17,18 +17,24 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const authed = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: claims } = await authed.auth.getClaims(authHeader.replace("Bearer ", ""));
-    if (!claims?.claims) return json({ error: "Unauthorized" }, 401);
-    const userId = claims.claims.sub as string;
-
     const service = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    const internalSecret = req.headers.get("x-internal-secret");
+    const isInternal =
+      !!internalSecret && internalSecret === Deno.env.get("AUTOMATION_API_KEY");
+
+    let userId: string | null = null;
+    if (!isInternal) {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
+      const authed = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: claims } = await authed.auth.getClaims(authHeader.replace("Bearer ", ""));
+      if (!claims?.claims) return json({ error: "Unauthorized" }, 401);
+      userId = claims.claims.sub as string;
+    }
 
     const { postId, accountIds } = await req.json();
     if (!postId || !Array.isArray(accountIds) || accountIds.length === 0) {
@@ -41,7 +47,7 @@ Deno.serve(async (req) => {
       .eq("id", postId)
       .maybeSingle();
     if (postErr || !post) return json({ error: "Post not found" }, 404);
-    if (post.owner_user_id !== userId) {
+    if (!isInternal && post.owner_user_id !== userId) {
       const { data: isAdmin } = await service.rpc("has_role", { _user_id: userId, _role: "admin" });
       if (!isAdmin) return json({ error: "Forbidden" }, 403);
     }

@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, Save, Image as ImageIcon, Facebook, Instagram, Send, Link2, Trash2, MessageCircle } from "lucide-react";
+import { Loader2, Sparkles, Save, Image as ImageIcon, Facebook, Instagram, Send, Link2, Trash2, MessageCircle, Zap } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -32,6 +33,19 @@ const MarketingStudio = ({ userId, isAdmin }: Props) => {
   const [saving, setSaving] = useState(false);
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [selectedAccounts, setSelectedAccounts] = useState<Record<string, string[]>>({});
+
+  // Auto-pilot state
+  const [autoActive, setAutoActive] = useState(false);
+  const [autoMode, setAutoMode] = useState<"mix" | "template">("mix");
+  const [autoPostsPerWeek, setAutoPostsPerWeek] = useState(3);
+  const [autoImageCount, setAutoImageCount] = useState(1);
+  const [autoStyleHints, setAutoStyleHints] = useState("");
+  const [autoAudience, setAutoAudience] = useState("");
+  const [autoMixSales, setAutoMixSales] = useState(50);
+  const [autoMixEdu, setAutoMixEdu] = useState(30);
+  const [autoMixEnt, setAutoMixEnt] = useState(20);
+  const [autoTargets, setAutoTargets] = useState<string[]>([]);
+  const [savingSchedule, setSavingSchedule] = useState(false);
 
   const { data: accounts = [], refetch: refetchAccounts } = useQuery({
     queryKey: ["social-accounts", userId],
@@ -67,6 +81,63 @@ const MarketingStudio = ({ userId, isAdmin }: Props) => {
       return data;
     },
   });
+
+  const { data: schedule } = useQuery({
+    queryKey: ["post-schedule", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("post_schedules")
+        .select("*")
+        .eq("owner_user_id", userId)
+        .maybeSingle();
+      if (error) throw error;
+      if (data) {
+        setAutoActive(!!data.active);
+        setAutoMode((data.mode as any) ?? "mix");
+        setAutoPostsPerWeek(data.posts_per_week ?? 3);
+        setAutoImageCount((data as any).image_count ?? 1);
+        setAutoStyleHints((data as any).style_hints ?? "");
+        setAutoAudience((data as any).audience ?? "");
+        setAutoTargets(((data as any).target_account_ids ?? []) as string[]);
+        const m: any = data.mix ?? {};
+        setAutoMixSales(m.sales ?? 50);
+        setAutoMixEdu(m.educational ?? 30);
+        setAutoMixEnt(m.entertainment ?? 20);
+      }
+      return data;
+    },
+  });
+
+  const saveSchedule = async () => {
+    setSavingSchedule(true);
+    try {
+      const payload = {
+        owner_user_id: userId,
+        active: autoActive,
+        mode: autoMode,
+        posts_per_week: autoPostsPerWeek,
+        image_count: autoImageCount,
+        style_hints: autoStyleHints || null,
+        audience: autoAudience || null,
+        target_account_ids: autoTargets,
+        mix: { sales: autoMixSales, educational: autoMixEdu, entertainment: autoMixEnt },
+      };
+      const { error } = await supabase
+        .from("post_schedules")
+        .upsert(payload as any, { onConflict: "owner_user_id" });
+      if (error) throw error;
+      toast.success(autoActive ? "Auto-pilot enabled" : "Schedule saved");
+      qc.invalidateQueries({ queryKey: ["post-schedule", userId] });
+    } catch (e: any) {
+      toast.error(e.message || "Save failed");
+    } finally {
+      setSavingSchedule(false);
+    }
+  };
+
+  const toggleAutoTarget = (id: string) => {
+    setAutoTargets((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  };
 
   const connectMeta = async () => {
     try {
@@ -311,6 +382,94 @@ const MarketingStudio = ({ userId, isAdmin }: Props) => {
           </CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5" /> Auto-pilot</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Switch checked={autoActive} onCheckedChange={setAutoActive} />
+            <span className="text-sm">
+              {autoActive ? "Enabled — posts will be auto-generated & published on your schedule." : "Disabled"}
+            </span>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label>Posts per week</Label>
+              <Input type="number" min={1} max={21} value={autoPostsPerWeek}
+                onChange={(e) => setAutoPostsPerWeek(Math.max(1, Math.min(21, Number(e.target.value) || 1)))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Images per post</Label>
+              <Input type="number" min={1} max={10} value={autoImageCount}
+                onChange={(e) => setAutoImageCount(Math.max(1, Math.min(10, Number(e.target.value) || 1)))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Mode</Label>
+              <Select value={autoMode} onValueChange={(v) => setAutoMode(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mix">Direction mix</SelectItem>
+                  <SelectItem value="template">Weekly template</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {autoMode === "mix" && (
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label>Sales %</Label>
+                <Input type="number" min={0} max={100} value={autoMixSales} onChange={(e) => setAutoMixSales(Number(e.target.value) || 0)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Educational %</Label>
+                <Input type="number" min={0} max={100} value={autoMixEdu} onChange={(e) => setAutoMixEdu(Number(e.target.value) || 0)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Entertainment %</Label>
+                <Input type="number" min={0} max={100} value={autoMixEnt} onChange={(e) => setAutoMixEnt(Number(e.target.value) || 0)} />
+              </div>
+            </div>
+          )}
+          <div className="space-y-2">
+            <Label>Audience (optional)</Label>
+            <Input value={autoAudience} onChange={(e) => setAutoAudience(e.target.value)} placeholder="e.g. young Christian mothers" />
+          </div>
+          <div className="space-y-2">
+            <Label>Style hints (optional)</Label>
+            <Input value={autoStyleHints} onChange={(e) => setAutoStyleHints(e.target.value)} placeholder="e.g. warm, cinematic, gold accents" />
+          </div>
+          <div className="space-y-2">
+            <Label>Publish to accounts</Label>
+            <div className="flex flex-wrap gap-2">
+              {accounts.length === 0 ? (
+                <span className="text-xs text-muted-foreground">Connect an account above first.</span>
+              ) : (
+                accounts.map((a: any) => {
+                  const active = autoTargets.includes(a.id);
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => toggleAutoTarget(a.id)}
+                      className={`text-xs inline-flex items-center gap-1 px-2 py-1 rounded border ${active ? "bg-accent text-accent-foreground border-accent" : "bg-background"}`}
+                    >
+                      {iconFor(a.platform)} {a.display_name || a.platform}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+          <Button onClick={saveSchedule} disabled={savingSchedule}>
+            {savingSchedule ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Saving…</> : <><Zap className="h-4 w-4 mr-2" />Save auto-pilot</>}
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            The scheduler runs every 15 minutes and spaces posts evenly across the week.
+          </p>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader><CardTitle>Recent drafts</CardTitle></CardHeader>
