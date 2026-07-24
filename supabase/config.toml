@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.scheduler-tick]
 verify_jwt = false
+
+[functions.whatsapp-optin]
+verify_jwt = false
