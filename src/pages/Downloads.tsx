@@ -32,6 +32,7 @@ const Downloads = () => {
   const [error, setError] = useState<string | null>(null);
   const [cartCleared, setCartCleared] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [failureReason, setFailureReason] = useState<string | null>(null);
 
   const isCompleted = paymentStatus === "completed" || paymentStatus === "successful";
   const isFailed = paymentStatus === "failed";
@@ -45,6 +46,9 @@ const Downloads = () => {
         body: { reference },
       });
       if (error) return null;
+      if (data?.failure_reason || data?.error) {
+        setFailureReason(data.failure_reason || data.error);
+      }
       return data?.status || null;
     } catch {
       return null;
@@ -139,6 +143,9 @@ const Downloads = () => {
             <p className="text-muted-foreground">
               Please check your phone and approve the payment prompt. This page will update automatically.
             </p>
+            <p className="text-sm text-muted-foreground">
+              If no MTN prompt appears, confirm the number is an MTN Mobile Money number and try again.
+            </p>
             {reference && <p className="text-sm text-muted-foreground">Reference: {reference}</p>}
             <Button variant="outline" onClick={handleManualCheck} disabled={checking}>
               {checking ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
@@ -162,7 +169,7 @@ const Downloads = () => {
             <XCircle className="h-16 w-16 text-destructive mx-auto" />
             <h1 className="font-display text-2xl font-bold">Payment Failed</h1>
             <p className="text-muted-foreground">
-              Something went wrong with your payment. Please try again.
+              {failureReason || "Something went wrong with your payment. Please try again."}
             </p>
             {reference && <p className="text-sm text-muted-foreground">Reference: {reference}</p>}
             <Link to="/browse">

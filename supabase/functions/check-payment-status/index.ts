@@ -8,6 +8,10 @@ const corsHeaders = {
 
 const LENCO_API_BASE = "https://api.lenco.co/access/v2";
 
+function lencoFailureReason(payload: any) {
+  return payload?.reasonForFailure || payload?.failureReason || payload?.reason || payload?.message || "Payment failed";
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -49,8 +53,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // If already completed or failed, return immediately
-    if (order.status === "completed" || order.status === "failed") {
+    // If already completed, or failed with a saved reason, return immediately
+    if (order.status === "completed" || (order.status === "failed" && order.failure_reason)) {
       return new Response(
         JSON.stringify({ status: order.status, failure_reason: order.failure_reason }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -88,7 +92,7 @@ Deno.serve(async (req) => {
       const collections = Array.isArray(lencoData.data) ? lencoData.data : [lencoData.data];
       const collection = collections.find((c: any) => c?.reference === originalRef);
       const lencoStatus = collection?.status;
-      const lencoReason = collection?.reason || collection?.failureReason || collection?.message;
+      const lencoReason = collection ? lencoFailureReason(collection) : undefined;
 
       if (lencoStatus === "successful") {
         await supabase
@@ -101,13 +105,14 @@ Deno.serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       } else if (lencoStatus === "failed") {
+        const reason = lencoReason || "Payment failed or the phone prompt expired.";
         await supabase
           .from("orders")
-          .update({ status: "failed", failure_reason: lencoReason, updated_at: new Date().toISOString() })
+          .update({ status: "failed", failure_reason: reason, updated_at: new Date().toISOString() })
           .eq("id", order.id);
         console.log(`Order ${order.id} marked failed via Lenco poll`);
         return new Response(
-          JSON.stringify({ status: "failed", failure_reason: lencoReason }),
+          JSON.stringify({ status: "failed", failure_reason: reason }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -117,7 +122,7 @@ Deno.serve(async (req) => {
 
     // Still pending
     return new Response(
-      JSON.stringify({ status: order.status }),
+      JSON.stringify({ status: order.status, failure_reason: order.failure_reason }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

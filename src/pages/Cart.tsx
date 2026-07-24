@@ -11,6 +11,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 
+const normalizeZambianMobileMoneyNumber = (raw: string, method: string) => {
+  const digits = raw.replace(/\D/g, "");
+  const local = digits.startsWith("260") ? `0${digits.slice(3)}` : digits;
+  const mtnPrefixes = ["096", "076"];
+  const airtelPrefixes = ["097", "077"];
+  const prefixes = method === "mtn" ? mtnPrefixes : airtelPrefixes;
+  const network = method === "mtn" ? "MTN" : "Airtel";
+
+  if (!/^0\d{9}$/.test(local)) {
+    return { error: `Enter a valid 10-digit Zambian ${network} number, e.g. ${method === "mtn" ? "096" : "097"}1234567.` };
+  }
+  if (!prefixes.includes(local.slice(0, 3))) {
+    return { error: `${network} numbers should start with ${prefixes.join(" or ")}.` };
+  }
+  return { phone: local };
+};
+
 const Cart = () => {
   const { items, removeItem, clearCart, total } = useCart();
   const { user } = useAuth();
@@ -37,17 +54,9 @@ const Cart = () => {
       return;
     }
 
-    // Zambian prefix / operator sanity check (avoid Lenco "wrong operator" failures)
-    const normalized = phone.replace(/^\+?260/, "0").replace(/\D/g, "");
-    const prefix = normalized.slice(0, 3);
-    const mtnPrefixes = ["096", "076"];
-    const airtelPrefixes = ["097", "077"];
-    if (paymentMethod === "mtn" && !mtnPrefixes.includes(prefix)) {
-      toast.error("That doesn't look like an MTN number. MTN numbers start with 096 or 076.");
-      return;
-    }
-    if (paymentMethod === "airtel" && !airtelPrefixes.includes(prefix)) {
-      toast.error("That doesn't look like an Airtel number. Airtel numbers start with 097 or 077.");
+    const normalized = normalizeZambianMobileMoneyNumber(phone, paymentMethod);
+    if (normalized.error || !normalized.phone) {
+      toast.error(normalized.error || "Please enter a valid mobile money number.");
       return;
     }
 
@@ -59,7 +68,7 @@ const Cart = () => {
           email,
           userId: user?.id || null,
           paymentMethod,
-          phone: normalized,
+          phone: normalized.phone,
         },
       });
 
@@ -91,7 +100,7 @@ const Cart = () => {
       }
 
       if (data.status === "pay-offline") {
-        toast.info("Please check your phone and approve the payment to complete the transaction.");
+        toast.info("Payment request sent. Please approve the MTN/Airtel prompt on your phone.");
         navigate(`/payment-verify?status=pending&reference=${data.reference}`);
         return;
       }
@@ -191,7 +200,7 @@ const Cart = () => {
                   <label className="text-sm font-medium">MTN Mobile Money Number</label>
                   <Input
                     type="tel"
-                    placeholder="e.g. 0971234567"
+                    placeholder="e.g. 0961234567"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/[^\d+]/g, ""))}
                     maxLength={15}
