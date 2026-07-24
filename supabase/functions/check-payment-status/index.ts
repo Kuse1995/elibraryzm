@@ -122,7 +122,12 @@ Deno.serve(async (req) => {
 
     // Still pending
     return new Response(
-      JSON.stringify({ status: order.status, failure_reason: order.failure_reason }),
+      JSON.stringify({
+        status: order.status,
+        failure_reason: order.status === "failed"
+          ? order.failure_reason || "Payment failed or the phone prompt expired."
+          : order.failure_reason,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

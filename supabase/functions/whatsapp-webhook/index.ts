@@ -249,7 +249,10 @@ Deno.serve(async (req) => {
     else if (/^(mtn|airtel)\b/i.test(lower) && state.cart!.length > 0) {
       const opMatch = lower.match(/^(mtn|airtel)/i);
       const phoneMatch = body.match(/(\+?\d[\d\s-]{7,})/);
-      const operator = opMatch![1].toLowerCase();
+      if (!opMatch) {
+        reply = "Please start with MTN or AIRTEL followed by your mobile money number.";
+      } else {
+      const operator = opMatch[1].toLowerCase();
       const phone = phoneMatch ? phoneMatch[1].replace(/[^\d+]/g, "") : "";
       if (cartTotalCents(state.cart!, bookList, discountPercent) === 0) {
         const r = await fulfillFreeOrder(supabase, state.cart!, bookList, from);
@@ -275,6 +278,7 @@ Deno.serve(async (req) => {
           reply = `📲 Payment request sent to ${normalized.phone.slice(-3).padStart(normalized.phone.length, "•")}.\n\nTotal: *${money(result.total!)}*\n\nApprove the prompt on your phone. I'll send your download link here as soon as payment completes. 🙌`;
         }
         }
+      }
       }
     }
 
