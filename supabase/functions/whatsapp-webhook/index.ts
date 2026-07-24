@@ -18,7 +18,10 @@ type Book = {
   category: string;
   price: number;
   description: string | null;
+  cover_url?: string | null;
 };
+
+type ReplyMsg = { body: string; media?: string[] };
 
 type ConvoState = {
   history?: { role: string; text: string }[];
@@ -88,7 +91,7 @@ Deno.serve(async (req) => {
     // Fetch approved books to ground the agent
     const { data: books } = await supabase
       .from("ebooks")
-      .select("id,title,author,category,price,description")
+      .select("id,title,author,category,price,description,cover_url")
       .eq("approval_status", "approved")
       .limit(200);
     const bookList: Book[] = (books ?? []) as any;
@@ -105,6 +108,7 @@ Deno.serve(async (req) => {
     // ===== DETERMINISTIC COMMANDS =====
     const lower = body.toLowerCase().trim();
     let reply: string | null = null;
+    let extraMessages: ReplyMsg[] = [];
     const currentCartTotal = state.cart.length
       ? cartTotalCents(state.cart, bookList, discountPercent)
       : 0;
@@ -132,7 +136,9 @@ Deno.serve(async (req) => {
     // Recovery: old free-resource carts could be left waiting for payment.
     // If a cart is already K0, deliver it immediately on the next message.
     else if (state.cart.length > 0 && currentCartTotal === 0 && state.stage !== "confirm_upsell") {
-      reply = await fulfillFreeOrder(supabase, state.cart, bookList, from);
+      const r = await fulfillFreeOrder(supabase, state.cart, bookList, from);
+      reply = r.text;
+      extraMessages = r.docs;
       state.cart = [];
       state.stage = "idle";
       state.pending_order_id = null;
@@ -155,7 +161,9 @@ Deno.serve(async (req) => {
         const cartTotal = cartTotalCents(state.cart, bookList, discountPercent);
         if (cartTotal === 0) {
           // All-free order — deliver immediately, skip upsell + payment
-          reply = await fulfillFreeOrder(supabase, state.cart, bookList, from);
+          const r = await fulfillFreeOrder(supabase, state.cart, bookList, from);
+          reply = r.text;
+          extraMessages = r.docs;
           state.cart = [];
           state.stage = "idle";
           state.pending_order_id = null;
@@ -172,9 +180,16 @@ Deno.serve(async (req) => {
           const orig = money(upsell.price);
           const disc = money(Math.floor(upsell.price * (100 - discountPercent) / 100));
           reply = `Great choice! 🎉\n\n${cartSummary(state.cart, bookList, discountPercent)}\n\n📚 *Special offer:* Add "${upsell.title}" by ${upsell.author} for *${disc}* (was ${orig}, ${discountPercent}% off)?\n\nReply YES to add it, or NO to skip.`;
+          // Attach covers: picked book(s) + upsell
+          const coverUrls = [...picked, upsell]
+            .map((b) => b.cover_url)
+            .filter((u): u is string => !!u);
+          if (coverUrls.length) extraMessages = [{ body: "", media: coverUrls.slice(0, 4) }];
           } else {
           state.stage = "awaiting_payment_details";
           reply = `${cartSummary(state.cart, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 0977xxxxxxx*\n• *AIRTEL 0977xxxxxxx*`;
+          const coverUrls = picked.map((b) => b.cover_url).filter((u): u is string => !!u);
+          if (coverUrls.length) extraMessages = [{ body: "", media: coverUrls.slice(0, 4) }];
           }
         }
       }
@@ -187,7 +202,9 @@ Deno.serve(async (req) => {
       }
       state.upsell_ebook_id = null;
       if (cartTotalCents(state.cart!, bookList, discountPercent) === 0) {
-        reply = await fulfillFreeOrder(supabase, state.cart!, bookList, from);
+        const r = await fulfillFreeOrder(supabase, state.cart!, bookList, from);
+        reply = r.text;
+        extraMessages = r.docs;
         state.cart = [];
         state.stage = "idle";
         state.pending_order_id = null;
@@ -198,7 +215,9 @@ Deno.serve(async (req) => {
     } else if (state.stage === "confirm_upsell" && /^(no|n|skip|nope)$/i.test(lower)) {
       state.upsell_ebook_id = null;
       if (cartTotalCents(state.cart!, bookList, discountPercent) === 0) {
-        reply = await fulfillFreeOrder(supabase, state.cart!, bookList, from);
+        const r = await fulfillFreeOrder(supabase, state.cart!, bookList, from);
+        reply = r.text;
+        extraMessages = r.docs;
         state.cart = [];
         state.stage = "idle";
       } else {
@@ -214,7 +233,9 @@ Deno.serve(async (req) => {
       const operator = opMatch![1].toLowerCase();
       const phone = phoneMatch ? phoneMatch[1].replace(/[^\d+]/g, "") : "";
       if (cartTotalCents(state.cart!, bookList, discountPercent) === 0) {
-        reply = await fulfillFreeOrder(supabase, state.cart!, bookList, from);
+        const r = await fulfillFreeOrder(supabase, state.cart!, bookList, from);
+        reply = r.text;
+        extraMessages = r.docs;
         state.cart = [];
         state.stage = "idle";
         state.pending_order_id = null;
@@ -293,7 +314,7 @@ Remember: short, warm, human. One clear next step. Only real books from the cata
         { onConflict: "phone_e164" },
       );
 
-    return twiml(reply);
+    return twiml(reply, extraMessages);
   } catch (err) {
     console.error("whatsapp-webhook error", err);
     return twiml("Sorry, something went wrong. Please try again shortly.");
@@ -381,13 +402,13 @@ async function fulfillFreeOrder(
   cart: { ebookId: string; discounted: boolean }[],
   books: Book[],
   waPhone: string,
-): Promise<string> {
+): Promise<{ text: string; docs: ReplyMsg[] }> {
   const ids = [...new Set(cart.map((c) => c.ebookId))];
   const { data: ebooks } = await supabase
     .from("ebooks")
-    .select("id, title, author, file_url, price")
+    .select("id, title, author, file_url, price, cover_url")
     .in("id", ids);
-  if (!ebooks?.length) return "Sorry, I couldn't find those books. Reply CATALOG to try again.";
+  if (!ebooks?.length) return { text: "Sorry, I couldn't find those books. Reply CATALOG to try again.", docs: [] };
 
   const reference = `wa-free-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
   const { data: order } = await supabase
@@ -409,7 +430,7 @@ async function fulfillFreeOrder(
     );
   }
 
-  const lines: string[] = ["🎉 Here are your free downloads (valid 24 hours):\n"];
+  const docs: ReplyMsg[] = [];
   for (const e of ebooks as any[]) {
     if (!e.file_url) continue;
     const path = normalizeFilePath(e.file_url);
@@ -417,11 +438,13 @@ async function fulfillFreeOrder(
       .from("ebook-files")
       .createSignedUrl(path, 60 * 60 * 24);
     if (signed?.signedUrl) {
-      lines.push(`📖 *${e.title}* — ${e.author}\n${signed.signedUrl}\n`);
+      docs.push({ body: `📖 *${e.title}* — ${e.author}`, media: [signed.signedUrl] });
     }
   }
-  lines.push("Enjoy! 🙏 Reply CATALOG to browse more books.");
-  return lines.join("\n");
+  return {
+    text: "🎉 Here are your free downloads — enjoy! 🙏\n\nReply CATALOG to browse more books.",
+    docs,
+  };
 }
 
 async function createLencoOrder(
@@ -543,9 +566,20 @@ async function askKimi(system: string, history: { role: string; text: string }[]
   }
 }
 
-function twiml(message: string) {
-  const safe = message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const body = `<?xml version="1.0" encoding="UTF-8"?><Response>${message ? `<Message>${safe}</Message>` : ""}</Response>`;
+function xmlEscape(s: string) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function twiml(message: string, extras: ReplyMsg[] = []) {
+  const messages: string[] = [];
+  if (message) messages.push(`<Message>${xmlEscape(message)}</Message>`);
+  for (const m of extras) {
+    const parts: string[] = [];
+    if (m.body) parts.push(xmlEscape(m.body));
+    for (const url of m.media ?? []) parts.push(`<Media>${xmlEscape(url)}</Media>`);
+    if (parts.length) messages.push(`<Message>${parts.join("")}</Message>`);
+  }
+  const body = `<?xml version="1.0" encoding="UTF-8"?><Response>${messages.join("")}</Response>`;
   return new Response(body, {
     status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/xml; charset=utf-8" },
