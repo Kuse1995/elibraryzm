@@ -143,11 +143,12 @@ function normalizeFilePath(fileUrl: string) {
 async function deliverWhatsAppDownloads(supabase: any, order: any) {
   const { data: items } = await supabase
     .from("order_items")
-    .select("ebook:ebooks(id,title,author,file_url)")
+    .select("ebook:ebooks(id,title,author,file_url,cover_url)")
     .eq("order_id", order.id);
   if (!items?.length) return;
 
-  const lines: string[] = ["🎉 Payment received! Here are your download links (valid for 24 hours):\n"];
+  await sendWhatsApp(order.whatsapp_phone, "🎉 Payment received! Sending your book(s) now…");
+
   for (const it of items) {
     const e = it.ebook;
     if (!e?.file_url) continue;
@@ -155,14 +156,17 @@ async function deliverWhatsAppDownloads(supabase: any, order: any) {
     const { data: signed } = await supabase.storage
       .from("ebook-files")
       .createSignedUrl(path, 60 * 60 * 24);
-    if (signed?.signedUrl) {
-      lines.push(`📖 *${e.title}* — ${e.author}\n${signed.signedUrl}\n`);
-    }
+    if (!signed?.signedUrl) continue;
+    await sendWhatsApp(
+      order.whatsapp_phone,
+      `📖 *${e.title}* — ${e.author}`,
+      [signed.signedUrl],
+    );
   }
-  lines.push("Thank you for supporting Christian authors! 🙏 Reply CATALOG to browse more books.");
-  const message = lines.join("\n");
-
-  await sendWhatsApp(order.whatsapp_phone, message);
+  await sendWhatsApp(
+    order.whatsapp_phone,
+    "Thank you for supporting Christian authors! 🙏 Reply CATALOG to browse more books.",
+  );
 
   // Update the ongoing conversation state
   await supabase
@@ -177,7 +181,7 @@ async function deliverWhatsAppDownloads(supabase: any, order: any) {
     );
 }
 
-async function sendWhatsApp(toE164: string, body: string) {
+async function sendWhatsApp(toE164: string, body: string, mediaUrls: string[] = []) {
   const sid = Deno.env.get("TWILIO_ACCOUNT_SID");
   const token = Deno.env.get("TWILIO_AUTH_TOKEN");
   const from = Deno.env.get("TWILIO_WHATSAPP_FROM");
@@ -188,6 +192,7 @@ async function sendWhatsApp(toE164: string, body: string) {
   const fromWa = from.startsWith("whatsapp:") ? from : `whatsapp:${from}`;
   const toWa = toE164.startsWith("whatsapp:") ? toE164 : `whatsapp:${toE164}`;
   const form = new URLSearchParams({ From: fromWa, To: toWa, Body: body });
+  for (const url of mediaUrls) form.append("MediaUrl", url);
   const auth = btoa(`${sid}:${token}`);
   const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
     method: "POST",
