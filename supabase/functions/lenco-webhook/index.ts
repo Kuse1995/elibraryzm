@@ -62,6 +62,15 @@ Deno.serve(async (req) => {
 
       // Auto-notify automation platform on completed sales
       if (newStatus === "completed") {
+        // WhatsApp order? Deliver PDFs back over WhatsApp.
+        if (order.whatsapp_phone) {
+          try {
+            await deliverWhatsAppDownloads(supabase, order);
+          } catch (waErr) {
+            console.error("WhatsApp delivery failed (non-blocking):", waErr);
+          }
+        }
+
         try {
           const automationApiKey = Deno.env.get("AUTOMATION_API_KEY");
           const { data: automationEnabled } = await supabase
@@ -117,3 +126,78 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+function normalizeFilePath(fileUrl: string) {
+  let path = fileUrl.trim().split("?")[0].split("#")[0];
+  const marker = "/storage/v1/object/";
+  const idx = path.indexOf(marker);
+  if (idx >= 0) {
+    path = path.slice(idx + marker.length);
+    path = path.replace(/^(public|sign)\/ebook-files\//, "");
+  }
+  path = path.replace(/^\/+/, "");
+  while (path.startsWith("ebook-files/")) path = path.slice("ebook-files/".length);
+  return decodeURIComponent(path);
+}
+
+async function deliverWhatsAppDownloads(supabase: any, order: any) {
+  const { data: items } = await supabase
+    .from("order_items")
+    .select("ebook:ebooks(id,title,author,file_url)")
+    .eq("order_id", order.id);
+  if (!items?.length) return;
+
+  const lines: string[] = ["🎉 Payment received! Here are your download links (valid for 24 hours):\n"];
+  for (const it of items) {
+    const e = it.ebook;
+    if (!e?.file_url) continue;
+    const path = normalizeFilePath(e.file_url);
+    const { data: signed } = await supabase.storage
+      .from("ebook-files")
+      .createSignedUrl(path, 60 * 60 * 24);
+    if (signed?.signedUrl) {
+      lines.push(`📖 *${e.title}* — ${e.author}\n${signed.signedUrl}\n`);
+    }
+  }
+  lines.push("Thank you for supporting Christian authors! 🙏 Reply CATALOG to browse more books.");
+  const message = lines.join("\n");
+
+  await sendWhatsApp(order.whatsapp_phone, message);
+
+  // Update the ongoing conversation state
+  await supabase
+    .from("whatsapp_conversations")
+    .upsert(
+      {
+        phone_e164: order.whatsapp_phone,
+        state: { history: [], stage: "idle", cart: [], pending_order_id: null },
+        last_message_at: new Date().toISOString(),
+      },
+      { onConflict: "phone_e164" },
+    );
+}
+
+async function sendWhatsApp(toE164: string, body: string) {
+  const sid = Deno.env.get("TWILIO_ACCOUNT_SID");
+  const token = Deno.env.get("TWILIO_AUTH_TOKEN");
+  const from = Deno.env.get("TWILIO_WHATSAPP_FROM");
+  if (!sid || !token || !from) {
+    console.error("Twilio env vars missing; cannot send WhatsApp");
+    return;
+  }
+  const fromWa = from.startsWith("whatsapp:") ? from : `whatsapp:${from}`;
+  const toWa = toE164.startsWith("whatsapp:") ? toE164 : `whatsapp:${toE164}`;
+  const form = new URLSearchParams({ From: fromWa, To: toWa, Body: body });
+  const auth = btoa(`${sid}:${token}`);
+  const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${auth}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: form,
+  });
+  if (!res.ok) {
+    console.error("Twilio send failed", res.status, await res.text());
+  }
+}
