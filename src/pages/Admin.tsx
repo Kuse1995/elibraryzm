@@ -18,6 +18,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
+import MarketingStudio from "@/components/MarketingStudio";
+import WhatsAppAdmin from "@/components/WhatsAppAdmin";
 
 type Ebook = Tables<"ebooks">;
 
@@ -694,6 +696,8 @@ const Admin = () => {
           <TabsTrigger value="customers">Customers</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="automation">Automation</TabsTrigger>
+          <TabsTrigger value="marketing">Marketing</TabsTrigger>
+          <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -868,6 +872,12 @@ const Admin = () => {
         </TabsContent>
         <UsersTab isAdmin={isAdmin} orders={orders} />
         <AutomationTab ebooks={ebooks} isAdmin={isAdmin} />
+        <TabsContent value="marketing" className="mt-6">
+          <MarketingStudio />
+        </TabsContent>
+        <TabsContent value="whatsapp" className="mt-6">
+          <WhatsAppAdmin />
+        </TabsContent>
         <TabsContent value="settings" className="mt-6">
           <Card>
             <CardHeader>
