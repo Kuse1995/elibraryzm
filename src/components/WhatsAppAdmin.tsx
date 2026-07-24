@@ -212,91 +212,11 @@ const WhatsAppAdmin = () => {
         </Table>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle>Recent Conversations</CardTitle></CardHeader>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Phone</TableHead>
-              <TableHead>Last message</TableHead>
-              <TableHead>State</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {conversations.length === 0 && (
-              <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6">No conversations yet.</TableCell></TableRow>
-            )}
-            {conversations.map((c: any) => (
-              <TableRow key={c.id}>
-                <TableCell className="font-mono text-sm">{c.phone_e164}</TableCell>
-                <TableCell>{c.last_message_at ? new Date(c.last_message_at).toLocaleString() : "—"}</TableCell>
-                <TableCell className="text-xs text-muted-foreground truncate max-w-xs">
-                  {c.state ? JSON.stringify(c.state).slice(0, 80) : "—"}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Message Log</CardTitle>
-          <CardDescription>
-            Every WhatsApp message in and out, tagged by intent. When a customer wants a human or asks about non-store matters, Grace refers them to Abraham on +260 972 064 502.
-          </CardDescription>
-        </CardHeader>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[70px]">Dir</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Intent</TableHead>
-              <TableHead>Message</TableHead>
-              <TableHead className="text-right">When</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {messages.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-6">
-                  No messages yet.
-                </TableCell>
-              </TableRow>
-            )}
-            {messages.map((m) => {
-              const name = m.profile_name || nameForPhone(m.phone_e164) || "—";
-              return (
-                <TableRow key={m.id}>
-                  <TableCell>
-                    {m.direction === "in" ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                        <ArrowDownLeft className="h-3.5 w-3.5" /> In
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-xs text-accent">
-                        <ArrowUpRight className="h-3.5 w-3.5" /> Out
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-sm">{name}</TableCell>
-                  <TableCell className="font-mono text-xs">{m.phone_e164}</TableCell>
-                  <TableCell>{intentBadge(m.intent)}</TableCell>
-                  <TableCell className="text-sm max-w-md">
-                    <div className="line-clamp-3 whitespace-pre-wrap">
-                      {m.body || (m.media_count ? `📎 ${m.media_count} media attachment${m.media_count > 1 ? "s" : ""}` : "—")}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right text-xs text-muted-foreground whitespace-nowrap">
-                    {new Date(m.created_at).toLocaleString()}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </Card>
+      <ConversationsInbox
+        messages={messages as any[]}
+        subscribers={subscribers as any[]}
+        intentBadge={intentBadge}
+      />
     </div>
   );
 };
