@@ -873,7 +873,7 @@ const Admin = () => {
         <UsersTab isAdmin={isAdmin} orders={orders} />
         <AutomationTab ebooks={ebooks} isAdmin={isAdmin} />
         <TabsContent value="marketing" className="mt-6">
-          <MarketingStudio />
+          {user && <MarketingStudio userId={user.id} isAdmin={isAdmin} />}
         </TabsContent>
         <TabsContent value="whatsapp" className="mt-6">
           <WhatsAppAdmin />
