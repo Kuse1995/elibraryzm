@@ -6,6 +6,26 @@ const corsHeaders = {
 };
 
 const GEMINI_MODEL = "gemini-2.5-flash";
+const LENCO_API_BASE = "https://api.lenco.co/access/v2";
+const PUBLIC_ORIGIN = Deno.env.get("PUBLIC_APP_URL") || "https://elibraryzm.lovable.app";
+
+type Book = {
+  id: string;
+  title: string;
+  author: string;
+  category: string;
+  price: number;
+  description: string | null;
+};
+
+type ConvoState = {
+  history?: { role: string; text: string }[];
+  stage?: "idle" | "confirm_upsell" | "awaiting_payment_details" | "payment_pending";
+  cart?: { ebookId: string; discounted: boolean }[];
+  upsell_ebook_id?: string | null;
+  discount_percent?: number;
+  pending_order_id?: string | null;
+};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -59,7 +79,9 @@ Deno.serve(async (req) => {
       .select("*")
       .eq("phone_e164", from)
       .maybeSingle();
-    const history: { role: string; text: string }[] = convo?.state?.history ?? [];
+    const state: ConvoState = (convo?.state as ConvoState) ?? {};
+    const history = state.history ?? [];
+    state.cart = state.cart ?? [];
 
     // Fetch approved books to ground the agent
     const { data: books } = await supabase
@@ -67,32 +89,137 @@ Deno.serve(async (req) => {
       .select("id,title,author,category,price,description")
       .eq("approval_status", "approved")
       .limit(50);
+    const bookList: Book[] = (books ?? []) as any;
 
-    const publicOrigin = Deno.env.get("PUBLIC_APP_URL") || "https://elibraryzm.lovable.app";
-    const catalog = (books ?? [])
-      .map((b: any) => `- ${b.title} by ${b.author} (${b.category}) — K${(b.price / 100).toFixed(2)} — ${publicOrigin}/ebook/${b.id}`)
-      .join("\n");
+    // Read discount percent
+    const { data: discountRow } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "upsell_discount_percent")
+      .maybeSingle();
+    const discountPercent = Math.min(99, Math.max(1, parseInt(discountRow?.value ?? "50") || 50));
+    state.discount_percent = discountPercent;
 
-    const reply = await askGemini(
-      `You are the friendly WhatsApp shopping assistant for E Library, a Christian ebook marketplace in Zambia (currency Kwacha / K).
-You help people discover, ask questions about, and buy Christian ebooks. Keep replies concise (<= 4 short lines), warm, and always end with a helpful next step or a book link when relevant.
-To let someone buy a book, share the direct link from the catalog below — checkout happens on the website.
-Never invent books or prices; only reference the catalog.
+    // ===== DETERMINISTIC COMMANDS =====
+    const lower = body.toLowerCase().trim();
+    let reply: string | null = null;
 
-Catalog:
-${catalog || "(catalog empty)"}
+    // CANCEL — reset
+    if (/^(cancel|reset|start over|clear)$/i.test(lower)) {
+      state.cart = [];
+      state.stage = "idle";
+      state.pending_order_id = null;
+      state.upsell_ebook_id = null;
+      reply = "Cart cleared. What would you like to explore? Ask for a topic (e.g. 'prayer', 'marriage', 'youth') or reply CATALOG to see books.";
+    }
+
+    // CATALOG / LIST
+    else if (/^(catalog|catalogue|list|books|menu)$/i.test(lower)) {
+      reply = formatCatalog(bookList);
+    }
+
+    // BUY <numbers> — accepts "BUY 1", "BUY 1 3", "BUY 1,3"
+    else if (/^buy\b/i.test(lower)) {
+      const nums = (lower.match(/\d+/g) || []).map((n) => parseInt(n) - 1);
+      const picked = nums.map((i) => bookList[i]).filter(Boolean);
+      if (!picked.length) {
+        reply = "Please tell me which book number to buy. Reply CATALOG to see the list, then e.g. BUY 1";
+      } else {
+        state.cart = picked.map((b) => ({ ebookId: b.id, discounted: false }));
+        // Pick upsell suggestion (different book, prefer same category)
+        const cartIds = new Set(state.cart.map((c) => c.ebookId));
+        const upsell =
+          bookList.find((b) => !cartIds.has(b.id) && b.price > 0 && picked.some((p) => p.category === b.category)) ||
+          bookList.find((b) => !cartIds.has(b.id) && b.price > 0);
+        if (upsell) {
+          state.upsell_ebook_id = upsell.id;
+          state.stage = "confirm_upsell";
+          const orig = money(upsell.price);
+          const disc = money(Math.floor(upsell.price * (100 - discountPercent) / 100));
+          reply = `Great choice! 🎉\n\n${cartSummary(state.cart, bookList, discountPercent)}\n\n📚 *Special offer:* Add "${upsell.title}" by ${upsell.author} for *${disc}* (was ${orig}, ${discountPercent}% off)?\n\nReply YES to add it, or NO to skip.`;
+        } else {
+          state.stage = "awaiting_payment_details";
+          reply = `${cartSummary(state.cart, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 0977xxxxxxx*\n• *AIRTEL 0977xxxxxxx*`;
+        }
+      }
+    }
+
+    // YES/NO for upsell
+    else if (state.stage === "confirm_upsell" && /^(yes|y|sure|ok|okay|add)$/i.test(lower)) {
+      if (state.upsell_ebook_id) {
+        state.cart!.push({ ebookId: state.upsell_ebook_id, discounted: true });
+      }
+      state.upsell_ebook_id = null;
+      state.stage = "awaiting_payment_details";
+      reply = `Added! ✅\n\n${cartSummary(state.cart!, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 0977xxxxxxx*\n• *AIRTEL 0977xxxxxxx*`;
+    } else if (state.stage === "confirm_upsell" && /^(no|n|skip|nope)$/i.test(lower)) {
+      state.upsell_ebook_id = null;
+      state.stage = "awaiting_payment_details";
+      reply = `No worries.\n\n${cartSummary(state.cart!, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 0977xxxxxxx*\n• *AIRTEL 0977xxxxxxx*`;
+    }
+
+    // Payment: MTN/AIRTEL <phone>
+    else if (/^(mtn|airtel)\b/i.test(lower) && state.cart!.length > 0) {
+      const opMatch = lower.match(/^(mtn|airtel)/i);
+      const phoneMatch = body.match(/(\+?\d[\d\s-]{7,})/);
+      const operator = opMatch![1].toLowerCase();
+      const phone = phoneMatch ? phoneMatch[1].replace(/[^\d+]/g, "") : "";
+      if (!phone || phone.replace(/\D/g, "").length < 9) {
+        reply = "Please include your full mobile money number, e.g. MTN 0977123456";
+      } else {
+        const result = await createLencoOrder(supabase, state.cart!, from, phone, operator, discountPercent);
+        if (result.error) {
+          reply = `Sorry, payment couldn't be started: ${result.error}. Reply MTN or AIRTEL followed by your number to try again.`;
+        } else {
+          state.pending_order_id = result.orderId!;
+          state.stage = "payment_pending";
+          reply = `📲 Payment request sent to ${phone.slice(-3).padStart(phone.length, "•")}.\n\nTotal: *${money(result.total!)}*\n\nApprove the prompt on your phone. I'll send your download link here as soon as payment completes. 🙌`;
+        }
+      }
+    }
+
+    // ===== FALLBACK: Gemini agent =====
+    if (reply === null) {
+      const catalog = formatCatalog(bookList);
+      const cartLine = state.cart!.length
+        ? `\n\nCurrent cart: ${cartSummary(state.cart!, bookList, discountPercent)}`
+        : "";
+      const stageHint =
+        state.stage === "awaiting_payment_details"
+          ? "\n\nThe customer has picked books and needs to send 'MTN <number>' or 'AIRTEL <number>' to pay."
+          : state.stage === "payment_pending"
+          ? "\n\nAn order is awaiting payment approval. Reassure them and offer to help."
+          : "";
+
+      reply = await askGemini(
+        `You are the warm, knowledgeable WhatsApp shopping assistant for E Library, a Christian ebook marketplace in Zambia (currency Kwacha / K).
+You help visitors discover Christian ebooks, answer spiritual/product questions with encouragement, and guide them to purchase inside this WhatsApp chat.
+
+HOW TO SELL (very important):
+- Books are numbered in the catalog below. To let the customer buy, tell them to reply *BUY <number>*, e.g. "BUY 3". Multiple: "BUY 1 4".
+- After they reply BUY, the system will offer them a ${discountPercent}% off upsell automatically, then ask for MTN/Airtel number.
+- They can also reply *CATALOG* to see the full list, or *CANCEL* to start over.
+- Never invent books, prices, or authors. Only use the catalog.
+- Keep replies short (max ~5 short lines), warm, encouraging, and always end with a clear next step (a number to BUY, a question, or a suggestion).
+- If asked spiritual questions, answer briefly and tie it to a relevant book if possible.
+
+Catalog (numbered):
+${catalog}
+${cartLine}${stageHint}
 `,
-      history,
-      body,
-    );
+        history,
+        body,
+      );
+    }
 
     const newHistory = [...history, { role: "user", text: body }, { role: "assistant", text: reply }].slice(-20);
+    state.history = newHistory;
     await supabase
       .from("whatsapp_conversations")
       .upsert(
         {
           phone_e164: from,
-          state: { history: newHistory },
+          state,
           last_message_at: new Date().toISOString(),
         } as any,
         { onConflict: "phone_e164" },
@@ -104,6 +231,121 @@ ${catalog || "(catalog empty)"}
     return twiml("Sorry, something went wrong. Please try again shortly.");
   }
 });
+
+function money(cents: number) {
+  return `K${(cents / 100).toFixed(2)}`;
+}
+
+function formatCatalog(books: Book[]) {
+  if (!books.length) return "(catalog empty)";
+  return books
+    .map((b, i) => `${i + 1}. *${b.title}* — ${b.author} (${b.category}) — ${money(b.price)}`)
+    .join("\n");
+}
+
+function cartSummary(
+  cart: { ebookId: string; discounted: boolean }[],
+  books: Book[],
+  discountPercent: number,
+) {
+  const lines: string[] = [];
+  let total = 0;
+  for (const item of cart) {
+    const b = books.find((x) => x.id === item.ebookId);
+    if (!b) continue;
+    const price = item.discounted
+      ? Math.floor(b.price * (100 - discountPercent) / 100)
+      : b.price;
+    total += price;
+    lines.push(`• ${b.title} — ${money(price)}${item.discounted ? ` (${discountPercent}% off)` : ""}`);
+  }
+  lines.push(`\n*Total: ${money(total)}*`);
+  return lines.join("\n");
+}
+
+async function createLencoOrder(
+  supabase: any,
+  cart: { ebookId: string; discounted: boolean }[],
+  waPhone: string,
+  payPhone: string,
+  operator: string,
+  discountPercent: number,
+): Promise<{ orderId?: string; total?: number; error?: string }> {
+  const LENCO_TOKEN = Deno.env.get("LENCO_API_TOKEN");
+  if (!LENCO_TOKEN) return { error: "payments not configured" };
+
+  const ids = [...new Set(cart.map((c) => c.ebookId))];
+  const { data: ebooks } = await supabase
+    .from("ebooks")
+    .select("id, price, title")
+    .in("id", ids);
+  if (!ebooks?.length) return { error: "books not found" };
+  const map = new Map(ebooks.map((e: any) => [e.id, e]));
+
+  let total = 0;
+  const orderItems: any[] = [];
+  for (const item of cart) {
+    const e: any = map.get(item.ebookId);
+    if (!e) continue;
+    const price = item.discounted
+      ? Math.floor(e.price * (100 - discountPercent) / 100)
+      : e.price;
+    total += price;
+    orderItems.push({ id: e.id, title: e.title, price, discounted: item.discounted });
+  }
+  if (total <= 0) return { error: "invalid cart" };
+
+  const reference = `wa-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .insert({
+      user_id: null,
+      guest_email: `${waPhone.replace(/\D/g, "")}@whatsapp.local`,
+      whatsapp_phone: waPhone,
+      total,
+      status: "pending",
+      payment_reference: reference,
+      items: orderItems,
+    })
+    .select()
+    .single();
+  if (orderError || !order) return { error: "could not create order" };
+
+  await supabase.from("order_items").insert(
+    orderItems.map((it: any) => ({ order_id: order.id, ebook_id: it.id, price: it.price })),
+  );
+
+  const lencoRes = await fetch(`${LENCO_API_BASE}/collections/mobile-money`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${LENCO_TOKEN}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      reference,
+      amount: (total / 100).toFixed(2),
+      currency: "ZMW",
+      bearer: "merchant",
+      phone: payPhone,
+      operator,
+      country: "ZM",
+    }),
+  });
+  const lencoData = await lencoRes.json();
+  if (!lencoData.status) {
+    await supabase.from("orders").update({ status: "failed" }).eq("id", order.id);
+    return { error: lencoData.message || "payment initiation failed" };
+  }
+  const lencoReference = lencoData.data?.lencoReference;
+  if (lencoReference) {
+    await supabase
+      .from("orders")
+      .update({ payment_reference: `${reference}|${lencoReference}` })
+      .eq("id", order.id);
+  }
+  return { orderId: order.id, total };
+}
 
 async function askGemini(system: string, history: { role: string; text: string }[], userMsg: string): Promise<string> {
   const key = Deno.env.get("GEMINI_API_KEY");
