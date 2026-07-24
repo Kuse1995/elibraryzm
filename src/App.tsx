@@ -17,6 +17,7 @@ import PaymentVerify from "./pages/PaymentVerify";
 import Downloads from "./pages/Downloads";
 import AuthorDashboard from "./pages/AuthorDashboard";
 import UpgradeToAuthor from "./pages/UpgradeToAuthor";
+import WhatsAppSubscribe from "./pages/WhatsAppSubscribe";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
                 <Route path="/upgrade-to-author" element={<UpgradeToAuthor />} />
                 <Route path="/payment-verify" element={<PaymentVerify />} />
                 <Route path="/downloads" element={<Downloads />} />
+                <Route path="/whatsapp" element={<WhatsAppSubscribe />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Layout>
