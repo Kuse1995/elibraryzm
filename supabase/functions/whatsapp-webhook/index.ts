@@ -32,6 +32,29 @@ type ConvoState = {
   pending_order_id?: string | null;
 };
 
+function normalizeZambianPhone(raw: string, operator: string) {
+  const digits = String(raw || "").replace(/\D/g, "");
+  const local = digits.startsWith("260") ? `0${digits.slice(3)}` : digits;
+  const prefixes = operator === "mtn" ? ["096", "076"] : ["097", "077"];
+  const network = operator === "mtn" ? "MTN" : "Airtel";
+
+  if (!/^0\d{9}$/.test(local)) {
+    return { error: `Please send a valid 10-digit ${network} number, e.g. ${operator === "mtn" ? "096" : "097"}1234567.` };
+  }
+  if (!prefixes.includes(local.slice(0, 3))) {
+    return { error: `${network} numbers should start with ${prefixes.join(" or ")}.` };
+  }
+  return { phone: local };
+}
+
+function lencoFailureReason(payload: any) {
+  const reason = payload?.data?.reasonForFailure || payload?.data?.failureReason || payload?.data?.reason || payload?.data?.message || payload?.message || "Payment failed";
+  if (String(reason).trim().toLowerCase() === "failed") {
+    return "The mobile money prompt was not completed. Please confirm the phone has MTN/Airtel Mobile Money active, keep the phone unlocked, and try again.";
+  }
+  return reason;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -127,7 +150,7 @@ Deno.serve(async (req) => {
       if (state.stage === "payment_pending") {
         reply = "Hi, I'm here. Your payment is still being checked — once it is confirmed, I'll send the download link here. If you want to start over, reply CANCEL.";
       } else if (state.stage === "awaiting_payment_details" && state.cart.length > 0) {
-        reply = `${cartSummary(state.cart, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 0977xxxxxxx*\n• *AIRTEL 0977xxxxxxx*`;
+        reply = `${cartSummary(state.cart, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 096xxxxxxx*\n• *AIRTEL 097xxxxxxx*`;
       } else {
         reply = `Hi there! 👋 I'm Grace from E Library.\n\nReply *CATALOG* to see all ${bookList.length} books, or tell me what kind of Christian book you're looking for.`;
       }
@@ -187,7 +210,7 @@ Deno.serve(async (req) => {
           if (coverUrls.length) extraMessages = [{ body: "", media: coverUrls.slice(0, 4) }];
           } else {
           state.stage = "awaiting_payment_details";
-          reply = `${cartSummary(state.cart, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 0977xxxxxxx*\n• *AIRTEL 0977xxxxxxx*`;
+          reply = `${cartSummary(state.cart, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 096xxxxxxx*\n• *AIRTEL 097xxxxxxx*`;
           const coverUrls = picked.map((b) => b.cover_url).filter((u): u is string => !!u);
           if (coverUrls.length) extraMessages = [{ body: "", media: coverUrls.slice(0, 4) }];
           }
@@ -210,7 +233,7 @@ Deno.serve(async (req) => {
         state.pending_order_id = null;
       } else {
         state.stage = "awaiting_payment_details";
-        reply = `Added! ✅\n\n${cartSummary(state.cart!, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 0977xxxxxxx*\n• *AIRTEL 0977xxxxxxx*`;
+        reply = `Added! ✅\n\n${cartSummary(state.cart!, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 096xxxxxxx*\n• *AIRTEL 097xxxxxxx*`;
       }
     } else if (state.stage === "confirm_upsell" && /^(no|n|skip|nope)$/i.test(lower)) {
       state.upsell_ebook_id = null;
@@ -222,7 +245,7 @@ Deno.serve(async (req) => {
         state.stage = "idle";
       } else {
         state.stage = "awaiting_payment_details";
-        reply = `No worries.\n\n${cartSummary(state.cart!, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 0977xxxxxxx*\n• *AIRTEL 0977xxxxxxx*`;
+        reply = `No worries.\n\n${cartSummary(state.cart!, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 096xxxxxxx*\n• *AIRTEL 097xxxxxxx*`;
       }
     }
 
@@ -230,7 +253,10 @@ Deno.serve(async (req) => {
     else if (/^(mtn|airtel)\b/i.test(lower) && state.cart!.length > 0) {
       const opMatch = lower.match(/^(mtn|airtel)/i);
       const phoneMatch = body.match(/(\+?\d[\d\s-]{7,})/);
-      const operator = opMatch![1].toLowerCase();
+      if (!opMatch) {
+        reply = "Please start with MTN or AIRTEL followed by your mobile money number.";
+      } else {
+      const operator = opMatch[1].toLowerCase();
       const phone = phoneMatch ? phoneMatch[1].replace(/[^\d+]/g, "") : "";
       if (cartTotalCents(state.cart!, bookList, discountPercent) === 0) {
         const r = await fulfillFreeOrder(supabase, state.cart!, bookList, from);
@@ -241,16 +267,22 @@ Deno.serve(async (req) => {
         state.pending_order_id = null;
         state.upsell_ebook_id = null;
       } else if (!phone || phone.replace(/\D/g, "").length < 9) {
-        reply = "Please include your full mobile money number, e.g. MTN 0977123456";
+        reply = "Please include your full mobile money number, e.g. MTN 0961234567";
       } else {
-        const result = await createLencoOrder(supabase, state.cart!, from, phone, operator, discountPercent);
+        const normalized = normalizeZambianPhone(phone, operator);
+        if (normalized.error || !normalized.phone) {
+          reply = normalized.error || "Please send a valid mobile money number.";
+        } else {
+        const result = await createLencoOrder(supabase, state.cart!, from, normalized.phone, operator, discountPercent);
         if (result.error) {
           reply = `Sorry, payment couldn't be started: ${result.error}. Reply MTN or AIRTEL followed by your number to try again.`;
         } else {
           state.pending_order_id = result.orderId!;
           state.stage = "payment_pending";
-          reply = `📲 Payment request sent to ${phone.slice(-3).padStart(phone.length, "•")}.\n\nTotal: *${money(result.total!)}*\n\nApprove the prompt on your phone. I'll send your download link here as soon as payment completes. 🙌`;
+          reply = `📲 Payment request sent to ${normalized.phone.slice(-3).padStart(normalized.phone.length, "•")}.\n\nTotal: *${money(result.total!)}*\n\nApprove the prompt on your phone. I'll send your download link here as soon as payment completes. 🙌`;
         }
+        }
+      }
       }
     }
 
@@ -517,9 +549,16 @@ async function createLencoOrder(
     }),
   });
   const lencoData = await lencoRes.json();
-  if (!lencoData.status) {
-    await supabase.from("orders").update({ status: "failed" }).eq("id", order.id);
-    return { error: lencoData.message || "payment initiation failed" };
+  if (!lencoRes.ok || !lencoData.status) {
+    const reason = lencoFailureReason(lencoData) || `payment initiation failed (${lencoRes.status})`;
+    await supabase.from("orders").update({ status: "failed", failure_reason: reason }).eq("id", order.id);
+    return { error: reason };
+  }
+  const paymentStatus = lencoData.data?.status;
+  if (paymentStatus === "failed") {
+    const reason = lencoFailureReason(lencoData);
+    await supabase.from("orders").update({ status: "failed", failure_reason: reason }).eq("id", order.id);
+    return { error: reason };
   }
   const lencoReference = lencoData.data?.lencoReference;
   if (lencoReference) {

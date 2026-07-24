@@ -46,6 +46,10 @@ Deno.serve(async (req) => {
     }
 
     let newStatus = order.status;
+    const rawFailureReason = data.reasonForFailure || data.failureReason || data.reason || data.message || null;
+    const failureReason = String(rawFailureReason || "").trim().toLowerCase() === "failed"
+      ? "The mobile money prompt was not completed. Please confirm the phone has MTN/Airtel Mobile Money active, keep the phone unlocked, and try again."
+      : rawFailureReason;
 
     if (event === "collection.successful" || data.status === "successful") {
       newStatus = "completed";
@@ -53,12 +57,23 @@ Deno.serve(async (req) => {
       newStatus = "failed";
     }
 
-    if (newStatus !== order.status) {
+    if (newStatus !== order.status || (newStatus === "failed" && failureReason && failureReason !== order.failure_reason)) {
       await supabase
         .from("orders")
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .update({
+          status: newStatus,
+          failure_reason: newStatus === "failed" ? failureReason || order.failure_reason : order.failure_reason,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", order.id);
       console.log(`Order ${order.id} updated to ${newStatus}`);
+
+      if (newStatus === "failed" && order.whatsapp_phone) {
+        await sendWhatsApp(
+          order.whatsapp_phone,
+          `Sorry, the payment failed${failureReason ? `: ${failureReason}` : ""}. Reply MTN or AIRTEL followed by your number to try again, or reply CANCEL to start over.`,
+        );
+      }
 
       // Auto-notify automation platform on completed sales
       if (newStatus === "completed") {

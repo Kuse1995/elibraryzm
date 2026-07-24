@@ -8,6 +8,29 @@ const corsHeaders = {
 
 const LENCO_API_BASE = "https://api.lenco.co/access/v2";
 
+function normalizeZambianPhone(raw: string, method: string) {
+  const digits = String(raw || "").replace(/\D/g, "");
+  const local = digits.startsWith("260") ? `0${digits.slice(3)}` : digits;
+  const prefixes = method === "mtn" ? ["096", "076"] : ["097", "077"];
+  const network = method === "mtn" ? "MTN" : "Airtel";
+
+  if (!/^0\d{9}$/.test(local)) {
+    return { error: `Enter a valid 10-digit Zambian ${network} number.` };
+  }
+  if (!prefixes.includes(local.slice(0, 3))) {
+    return { error: `${network} numbers should start with ${prefixes.join(" or ")}.` };
+  }
+  return { phone: local };
+}
+
+function lencoFailureReason(payload: any) {
+  const reason = payload?.data?.reasonForFailure || payload?.data?.failureReason || payload?.data?.reason || payload?.data?.message || payload?.message || "Payment failed";
+  if (String(reason).trim().toLowerCase() === "failed") {
+    return "The mobile money prompt was not completed. Please confirm the phone has MTN/Airtel Mobile Money active, keep the phone unlocked, and try again.";
+  }
+  return reason;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -36,6 +59,14 @@ Deno.serve(async (req) => {
     if (!["mtn", "airtel"].includes(paymentMethod)) {
       return new Response(
         JSON.stringify({ error: "Invalid payment method. Use 'mtn' or 'airtel'." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const normalized = normalizeZambianPhone(phone, paymentMethod);
+    if (normalized.error || !normalized.phone) {
+      return new Response(
+        JSON.stringify({ error: normalized.error || "Invalid mobile money number" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -130,7 +161,7 @@ Deno.serve(async (req) => {
       amount: totalKwacha,
       currency: "ZMW",
       bearer: "merchant",
-      phone,
+      phone: normalized.phone,
       operator: paymentMethod,
       country: "ZM",
     };
@@ -150,8 +181,8 @@ Deno.serve(async (req) => {
     const lencoData = await lencoRes.json();
     console.log("Lenco response:", JSON.stringify(lencoData));
 
-    if (!lencoData.status) {
-      const reason = lencoData.message || lencoData.data?.reason || "Payment initiation failed";
+    if (!lencoRes.ok || !lencoData.status) {
+      const reason = lencoFailureReason(lencoData) || `Payment initiation failed (${lencoRes.status})`;
       await supabase.from("orders").update({ status: "failed", failure_reason: reason }).eq("id", order.id);
       return new Response(
         JSON.stringify({ error: reason, details: lencoData }),
@@ -161,7 +192,7 @@ Deno.serve(async (req) => {
 
     const paymentStatus = lencoData.data?.status;
     const lencoReference = lencoData.data?.lencoReference;
-    const lencoReason = lencoData.data?.reason || lencoData.data?.failureReason || lencoData.data?.message;
+    const lencoReason = lencoFailureReason(lencoData);
 
     await supabase
       .from("orders")

@@ -10,6 +10,23 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
+const normalizeZambianMobileMoneyNumber = (raw: string, method: "mtn" | "airtel") => {
+  const digits = raw.replace(/\D/g, "");
+  const local = digits.startsWith("260") ? `0${digits.slice(3)}` : digits;
+  const mtnPrefixes = ["096", "076"];
+  const airtelPrefixes = ["097", "077"];
+  const prefixes = method === "mtn" ? mtnPrefixes : airtelPrefixes;
+  const network = method === "mtn" ? "MTN" : "Airtel";
+
+  if (!/^0\d{9}$/.test(local)) {
+    return { error: `Enter a valid 10-digit Zambian ${network} number, e.g. ${method === "mtn" ? "096" : "097"}1234567.` };
+  }
+  if (!prefixes.includes(local.slice(0, 3))) {
+    return { error: `${network} numbers should start with ${prefixes.join(" or ")}.` };
+  }
+  return { phone: local };
+};
+
 const EbookDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -93,8 +110,9 @@ const EbookDetail = () => {
       toast.error("Please sign in to purchase");
       return;
     }
-    if (!phone || phone.length < 10) {
-      toast.error("Please enter a valid phone number");
+    const normalized = normalizeZambianMobileMoneyNumber(phone, paymentMethod);
+    if (normalized.error || !normalized.phone) {
+      toast.error(normalized.error || "Please enter a valid phone number");
       return;
     }
 
@@ -110,11 +128,23 @@ const EbookDetail = () => {
           email: user.email,
           userId: user.id,
           paymentMethod,
-          phone,
+          phone: normalized.phone,
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        try {
+          const ctx: any = (error as any).context;
+          if (ctx?.text) {
+            const body = await ctx.text();
+            const parsed = JSON.parse(body);
+            throw new Error(parsed.error || parsed.failure_reason || error.message);
+          }
+        } catch (parseErr: any) {
+          if (parseErr?.message) throw parseErr;
+        }
+        throw error;
+      }
 
       if (data?.error) {
         toast.error(data.error);
@@ -289,9 +319,9 @@ const EbookDetail = () => {
                       <Input
                         id="phone"
                         type="tel"
-                        placeholder="0977123456"
+                        placeholder={paymentMethod === "mtn" ? "0961234567" : "0971234567"}
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
+                        onChange={(e) => setPhone(e.target.value.replace(/[^\d+]/g, ""))}
                         className="pl-10"
                       />
                     </div>

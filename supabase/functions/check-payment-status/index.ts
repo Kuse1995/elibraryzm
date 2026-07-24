@@ -8,6 +8,14 @@ const corsHeaders = {
 
 const LENCO_API_BASE = "https://api.lenco.co/access/v2";
 
+function lencoFailureReason(payload: any) {
+  const reason = payload?.reasonForFailure || payload?.failureReason || payload?.reason || payload?.message || "Payment failed";
+  if (String(reason).trim().toLowerCase() === "failed") {
+    return "The mobile money prompt was not completed. Please confirm the phone has MTN/Airtel Mobile Money active, keep the phone unlocked, and try again.";
+  }
+  return reason;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -49,8 +57,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // If already completed or failed, return immediately
-    if (order.status === "completed" || order.status === "failed") {
+    // If already completed, or failed with a saved reason, return immediately
+    if (order.status === "completed" || (order.status === "failed" && order.failure_reason)) {
       return new Response(
         JSON.stringify({ status: order.status, failure_reason: order.failure_reason }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -67,28 +75,34 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Extract the original reference (before the pipe) to query Lenco
+    // Extract both references; Lenco sometimes resolves by the app reference and sometimes by its own reference.
     const originalRef = order.payment_reference?.split("|")[0] || reference;
+    const lencoRef = order.payment_reference?.split("|")[1] || "";
 
     try {
-      const lencoRes = await fetch(
-        `${LENCO_API_BASE}/collections?reference=${encodeURIComponent(originalRef)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${LENCO_TOKEN}`,
-            Accept: "application/json",
-          },
-        }
-      );
+      const refsToCheck = [...new Set([originalRef, lencoRef].filter(Boolean))];
+      const collections: any[] = [];
 
-      const lencoData = await lencoRes.json();
-      console.log("Lenco status check response:", JSON.stringify(lencoData));
+      for (const refToCheck of refsToCheck) {
+        const lencoRes = await fetch(
+          `${LENCO_API_BASE}/collections?reference=${encodeURIComponent(refToCheck)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${LENCO_TOKEN}`,
+              Accept: "application/json",
+            },
+          }
+        );
 
-      // Lenco returns data as an array of collections
-      const collections = Array.isArray(lencoData.data) ? lencoData.data : [lencoData.data];
-      const collection = collections.find((c: any) => c?.reference === originalRef);
+        const lencoData = await lencoRes.json();
+        console.log("Lenco status check response:", JSON.stringify({ refToCheck, lencoData }));
+        const dataRows = Array.isArray(lencoData.data) ? lencoData.data : [lencoData.data];
+        collections.push(...dataRows.filter(Boolean));
+      }
+
+      const collection = collections.find((c: any) => c?.reference === originalRef || c?.lencoReference === lencoRef || c?.id === lencoRef) || collections[0];
       const lencoStatus = collection?.status;
-      const lencoReason = collection?.reason || collection?.failureReason || collection?.message;
+      const lencoReason = collection ? lencoFailureReason(collection) : undefined;
 
       if (lencoStatus === "successful") {
         await supabase
@@ -101,13 +115,14 @@ Deno.serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       } else if (lencoStatus === "failed") {
+        const reason = lencoReason || "Payment failed or the phone prompt expired.";
         await supabase
           .from("orders")
-          .update({ status: "failed", failure_reason: lencoReason, updated_at: new Date().toISOString() })
+          .update({ status: "failed", failure_reason: reason, updated_at: new Date().toISOString() })
           .eq("id", order.id);
         console.log(`Order ${order.id} marked failed via Lenco poll`);
         return new Response(
-          JSON.stringify({ status: "failed", failure_reason: lencoReason }),
+          JSON.stringify({ status: "failed", failure_reason: reason }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -117,7 +132,12 @@ Deno.serve(async (req) => {
 
     // Still pending
     return new Response(
-      JSON.stringify({ status: order.status }),
+      JSON.stringify({
+        status: order.status,
+        failure_reason: order.status === "failed"
+          ? order.failure_reason || "Payment failed or the phone prompt expired."
+          : order.failure_reason,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
