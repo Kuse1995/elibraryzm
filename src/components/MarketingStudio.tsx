@@ -70,11 +70,12 @@ const MarketingStudio = ({ userId, isAdmin }: Props) => {
 
   const connectMeta = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke("meta-oauth", {
-        body: {},
-        method: "GET" as any,
-      });
-      if (error) throw error;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Sign in first");
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meta-oauth?action=start&return_to=${encodeURIComponent(window.location.pathname)}`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${session.access_token}` } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
       if (data?.url) window.location.href = data.url;
     } catch (e: any) {
       toast.error(e.message || "Could not start Meta connect");
