@@ -244,37 +244,49 @@ export type Database = {
       post_schedules: {
         Row: {
           active: boolean
+          audience: string | null
           created_at: string
           id: string
+          image_count: number
           last_run_at: string | null
           mix: Json
           mode: string
           owner_user_id: string
           posts_per_week: number
+          style_hints: string | null
+          target_account_ids: string[]
           template: Json
           updated_at: string
         }
         Insert: {
           active?: boolean
+          audience?: string | null
           created_at?: string
           id?: string
+          image_count?: number
           last_run_at?: string | null
           mix?: Json
           mode?: string
           owner_user_id: string
           posts_per_week?: number
+          style_hints?: string | null
+          target_account_ids?: string[]
           template?: Json
           updated_at?: string
         }
         Update: {
           active?: boolean
+          audience?: string | null
           created_at?: string
           id?: string
+          image_count?: number
           last_run_at?: string | null
           mix?: Json
           mode?: string
           owner_user_id?: string
           posts_per_week?: number
+          style_hints?: string | null
+          target_account_ids?: string[]
           template?: Json
           updated_at?: string
         }
