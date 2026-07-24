@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.guest-download-links]
 verify_jwt = false
+
+[functions.meta-oauth]
+verify_jwt = false
+
+[functions.whatsapp-webhook]
+verify_jwt = false
