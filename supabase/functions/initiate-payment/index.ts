@@ -151,15 +151,17 @@ Deno.serve(async (req) => {
     console.log("Lenco response:", JSON.stringify(lencoData));
 
     if (!lencoData.status) {
-      await supabase.from("orders").update({ status: "failed" }).eq("id", order.id);
+      const reason = lencoData.message || lencoData.data?.reason || "Payment initiation failed";
+      await supabase.from("orders").update({ status: "failed", failure_reason: reason }).eq("id", order.id);
       return new Response(
-        JSON.stringify({ error: lencoData.message || "Payment initiation failed", details: lencoData }),
+        JSON.stringify({ error: reason, details: lencoData }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const paymentStatus = lencoData.data?.status;
     const lencoReference = lencoData.data?.lencoReference;
+    const lencoReason = lencoData.data?.reason || lencoData.data?.failureReason || lencoData.data?.message;
 
     await supabase
       .from("orders")
@@ -171,6 +173,15 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ status: "successful", orderId: order.id, reference }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (paymentStatus === "failed") {
+      const reason = lencoReason || "Payment failed";
+      await supabase.from("orders").update({ status: "failed", failure_reason: reason }).eq("id", order.id);
+      return new Response(
+        JSON.stringify({ status: "failed", error: reason, orderId: order.id, reference }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
