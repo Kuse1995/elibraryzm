@@ -6,9 +6,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-internal-secret",
 };
 
-const TEXT_MODEL = "google/gemini-2.5-flash";
-const IMAGE_MODEL = "google/gemini-2.5-flash-image";
-const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1";
+const GEMINI_TEXT_MODEL = "gemini-2.5-flash";
+const GEMINI_IMAGE_MODEL = "gemini-3.1-flash-lite-image";
+const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 const directionGuidance: Record<string, string> = {
   sales: "Persuasive, benefit-driven, ends with a clear CTA to buy the book.",
@@ -50,16 +50,13 @@ function isDue(schedule: any): boolean {
   return Date.now() - new Date(schedule.last_run_at).getTime() >= gapMs;
 }
 
-async function callAi(apiKey: string, body: unknown) {
-  const res = await fetch(`${AI_GATEWAY}/chat/completions`, {
+async function callGemini(apiKey: string, model: string, body: unknown) {
+  const res = await fetch(`${GEMINI_BASE}/${model}:generateContent?key=${apiKey}`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`AI Gateway ${res.status}: ${await res.text()}`);
+  if (!res.ok) throw new Error(`Gemini ${model} ${res.status}: ${await res.text()}`);
   return res.json();
 }
 
@@ -68,9 +65,9 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const service = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const aiKey = Deno.env.get("LOVABLE_API_KEY");
+    const geminiKey = Deno.env.get("GEMINI_API_KEY");
     const internalSecret = Deno.env.get("AUTOMATION_API_KEY");
-    if (!aiKey) return json({ error: "LOVABLE_API_KEY missing" }, 500);
+    if (!geminiKey) return json({ error: "GEMINI_API_KEY missing" }, 500);
 
     const { data: schedules, error } = await service
       .from("post_schedules")
@@ -107,28 +104,26 @@ Direction: ${direction.toUpperCase()} — ${directionGuidance[direction] ?? ""}
 ${sch.audience ? `Audience: ${sch.audience}\n` : ""}${sch.style_hints ? `Style hints: ${sch.style_hints}\n` : ""}
 Write ONE post (max ~180 words) with an attention-grabbing first line, body copy, and 3-6 hashtags on the last line. Plain text only.`;
 
-        const capRes = await callAi(aiKey, {
-          model: TEXT_MODEL,
-          messages: [{ role: "user", content: captionPrompt }],
+        const capRes = await callGemini(geminiKey, GEMINI_TEXT_MODEL, {
+          contents: [{ role: "user", parts: [{ text: captionPrompt }] }],
         });
-        const caption: string = capRes?.choices?.[0]?.message?.content ?? "";
+        const caption: string =
+          capRes?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).filter(Boolean).join("\n") ?? "";
 
         // Generate images
         const imageCount = Math.max(1, Math.min(10, sch.image_count || 1));
         const uploadedPaths: string[] = [];
         for (let i = 0; i < imageCount; i++) {
           const imgPrompt = `Marketing image for E Library. ${bookBlock}. Direction: ${direction}. ${sch.style_hints ?? ""}. Portrait 4:5, warm, high-quality, no text overlay unless subtle.`;
-          const imgRes = await callAi(aiKey, {
-            model: IMAGE_MODEL,
-            messages: [{ role: "user", content: imgPrompt }],
-            modalities: ["image", "text"],
+          const imgRes = await callGemini(geminiKey, GEMINI_IMAGE_MODEL, {
+            contents: [{ role: "user", parts: [{ text: imgPrompt }] }],
           });
-          const imgUrl: string | undefined =
-            imgRes?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-          if (!imgUrl?.startsWith("data:")) continue;
-          const [meta, b64] = imgUrl.split(",");
-          const mime = meta.match(/data:(.*?);base64/)?.[1] ?? "image/png";
-          const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+          const parts = imgRes?.candidates?.[0]?.content?.parts ?? [];
+          const imgPart = parts.find((p: any) => p.inlineData || p.inline_data);
+          const inline = imgPart?.inlineData ?? imgPart?.inline_data;
+          if (!inline?.data) continue;
+          const mime = inline.mimeType ?? inline.mime_type ?? "image/png";
+          const bytes = Uint8Array.from(atob(inline.data), (c) => c.charCodeAt(0));
           const ext = mime.split("/")[1]?.replace("jpeg", "jpg") ?? "png";
           const path = `${sch.owner_user_id}/auto-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
           const { error: upErr } = await service.storage
