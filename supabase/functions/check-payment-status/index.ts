@@ -71,26 +71,32 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Extract the original reference (before the pipe) to query Lenco
+    // Extract both references; Lenco sometimes resolves by the app reference and sometimes by its own reference.
     const originalRef = order.payment_reference?.split("|")[0] || reference;
+    const lencoRef = order.payment_reference?.split("|")[1] || "";
 
     try {
-      const lencoRes = await fetch(
-        `${LENCO_API_BASE}/collections?reference=${encodeURIComponent(originalRef)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${LENCO_TOKEN}`,
-            Accept: "application/json",
-          },
-        }
-      );
+      const refsToCheck = [...new Set([originalRef, lencoRef].filter(Boolean))];
+      const collections: any[] = [];
 
-      const lencoData = await lencoRes.json();
-      console.log("Lenco status check response:", JSON.stringify(lencoData));
+      for (const refToCheck of refsToCheck) {
+        const lencoRes = await fetch(
+          `${LENCO_API_BASE}/collections?reference=${encodeURIComponent(refToCheck)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${LENCO_TOKEN}`,
+              Accept: "application/json",
+            },
+          }
+        );
 
-      // Lenco returns data as an array of collections
-      const collections = Array.isArray(lencoData.data) ? lencoData.data : [lencoData.data];
-      const collection = collections.find((c: any) => c?.reference === originalRef);
+        const lencoData = await lencoRes.json();
+        console.log("Lenco status check response:", JSON.stringify({ refToCheck, lencoData }));
+        const dataRows = Array.isArray(lencoData.data) ? lencoData.data : [lencoData.data];
+        collections.push(...dataRows.filter(Boolean));
+      }
+
+      const collection = collections.find((c: any) => c?.reference === originalRef || c?.lencoReference === lencoRef || c?.id === lencoRef) || collections[0];
       const lencoStatus = collection?.status;
       const lencoReason = collection ? lencoFailureReason(collection) : undefined;
 
