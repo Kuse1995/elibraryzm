@@ -1,0 +1,1 @@
+UPDATE public.social_accounts SET external_id = '+14647686485', display_name = 'E Library WhatsApp (+1 464 768 6485)', updated_at = now() WHERE platform = 'whatsapp';
