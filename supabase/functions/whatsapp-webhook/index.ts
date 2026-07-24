@@ -302,6 +302,84 @@ function cartSummary(
   return lines.join("\n");
 }
 
+function cartTotalCents(
+  cart: { ebookId: string; discounted: boolean }[],
+  books: Book[],
+  discountPercent: number,
+) {
+  let total = 0;
+  for (const item of cart) {
+    const b = books.find((x) => x.id === item.ebookId);
+    if (!b) continue;
+    const price = item.discounted
+      ? Math.floor(b.price * (100 - discountPercent) / 100)
+      : b.price;
+    total += price;
+  }
+  return total;
+}
+
+function normalizeFilePath(fileUrl: string) {
+  let path = fileUrl.trim().split("?")[0].split("#")[0];
+  const marker = "/storage/v1/object/";
+  const idx = path.indexOf(marker);
+  if (idx >= 0) {
+    path = path.slice(idx + marker.length);
+    path = path.replace(/^(public|sign)\/ebook-files\//, "");
+  }
+  path = path.replace(/^\/+/, "");
+  while (path.startsWith("ebook-files/")) path = path.slice("ebook-files/".length);
+  return decodeURIComponent(path);
+}
+
+async function fulfillFreeOrder(
+  supabase: any,
+  cart: { ebookId: string; discounted: boolean }[],
+  books: Book[],
+  waPhone: string,
+): Promise<string> {
+  const ids = [...new Set(cart.map((c) => c.ebookId))];
+  const { data: ebooks } = await supabase
+    .from("ebooks")
+    .select("id, title, author, file_url, price")
+    .in("id", ids);
+  if (!ebooks?.length) return "Sorry, I couldn't find those books. Reply CATALOG to try again.";
+
+  const reference = `wa-free-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+  const { data: order } = await supabase
+    .from("orders")
+    .insert({
+      user_id: null,
+      guest_email: `${waPhone.replace(/\D/g, "")}@whatsapp.local`,
+      whatsapp_phone: waPhone,
+      total: 0,
+      status: "completed",
+      payment_reference: reference,
+      items: ebooks.map((e: any) => ({ id: e.id, title: e.title, price: 0 })),
+    })
+    .select()
+    .single();
+  if (order) {
+    await supabase.from("order_items").insert(
+      ebooks.map((e: any) => ({ order_id: order.id, ebook_id: e.id, price: 0 })),
+    );
+  }
+
+  const lines: string[] = ["🎉 Here are your free downloads (valid 24 hours):\n"];
+  for (const e of ebooks as any[]) {
+    if (!e.file_url) continue;
+    const path = normalizeFilePath(e.file_url);
+    const { data: signed } = await supabase.storage
+      .from("ebook-files")
+      .createSignedUrl(path, 60 * 60 * 24);
+    if (signed?.signedUrl) {
+      lines.push(`📖 *${e.title}* — ${e.author}\n${signed.signedUrl}\n`);
+    }
+  }
+  lines.push("Enjoy! 🙏 Reply CATALOG to browse more books.");
+  return lines.join("\n");
+}
+
 async function createLencoOrder(
   supabase: any,
   cart: { ebookId: string; discounted: boolean }[],
