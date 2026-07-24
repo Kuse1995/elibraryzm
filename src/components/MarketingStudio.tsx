@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, Save, Image as ImageIcon } from "lucide-react";
+import { Loader2, Sparkles, Save, Image as ImageIcon, Facebook, Instagram, Send, Link2, Trash2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -30,6 +30,19 @@ const MarketingStudio = ({ userId, isAdmin }: Props) => {
   const [images, setImages] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [selectedAccounts, setSelectedAccounts] = useState<Record<string, string[]>>({});
+
+  const { data: accounts = [], refetch: refetchAccounts } = useQuery({
+    queryKey: ["social-accounts", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("social_accounts")
+        .select("id,platform,display_name,external_id,created_at");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const { data: myBooks = [] } = useQuery({
     queryKey: ["marketing-books", userId, isAdmin],
@@ -54,6 +67,61 @@ const MarketingStudio = ({ userId, isAdmin }: Props) => {
       return data;
     },
   });
+
+  const connectMeta = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("meta-oauth", {
+        body: {},
+        method: "GET" as any,
+      });
+      if (error) throw error;
+      if (data?.url) window.location.href = data.url;
+    } catch (e: any) {
+      toast.error(e.message || "Could not start Meta connect");
+    }
+  };
+
+  const disconnectAccount = async (id: string) => {
+    if (!confirm("Disconnect this account?")) return;
+    const { error } = await supabase.from("social_accounts").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Disconnected");
+    refetchAccounts();
+  };
+
+  const toggleAccountForPost = (postId: string, accId: string) => {
+    setSelectedAccounts((s) => {
+      const cur = s[postId] ?? [];
+      return { ...s, [postId]: cur.includes(accId) ? cur.filter((x) => x !== accId) : [...cur, accId] };
+    });
+  };
+
+  const publishDraft = async (postId: string) => {
+    const accountIds = selectedAccounts[postId] ?? [];
+    if (accountIds.length === 0) return toast.error("Select at least one account");
+    setPublishingId(postId);
+    try {
+      const { data, error } = await supabase.functions.invoke("publish-post", {
+        body: { postId, accountIds },
+      });
+      if (error) throw error;
+      if (data?.errors && Object.keys(data.errors).length) {
+        toast.error(`Published with errors: ${Object.values(data.errors).join("; ")}`);
+      } else {
+        toast.success("Published!");
+      }
+      qc.invalidateQueries({ queryKey: ["marketing-posts", userId] });
+    } catch (e: any) {
+      toast.error(e.message || "Publish failed");
+    } finally {
+      setPublishingId(null);
+    }
+  };
+
+  const iconFor = (platform: string) =>
+    platform === "facebook_page" ? <Facebook className="h-3.5 w-3.5" /> :
+    platform === "instagram" ? <Instagram className="h-3.5 w-3.5" /> :
+    <MessageCircle className="h-3.5 w-3.5" />;
 
   const generate = async () => {
     setGenerating(true);
@@ -125,6 +193,40 @@ const MarketingStudio = ({ userId, isAdmin }: Props) => {
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Link2 className="h-5 w-5" /> Connected accounts</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {accounts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No accounts connected yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {accounts.map((a: any) => (
+                <div key={a.id} className="flex items-center justify-between border rounded-md p-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    {iconFor(a.platform)}
+                    <span className="font-medium">{a.display_name || a.external_id}</span>
+                    <Badge variant="outline" className="text-xs">{a.platform}</Badge>
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={() => disconnectAccount(a.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={connectMeta}>
+              <Facebook className="h-4 w-4 mr-2" /> Connect Facebook & Instagram
+            </Button>
+            <p className="text-xs text-muted-foreground self-center">
+              WhatsApp broadcasts use the shared Twilio sender configured for E Library.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -203,7 +305,7 @@ const MarketingStudio = ({ userId, isAdmin }: Props) => {
               <Button variant="outline" onClick={() => { setCaption(""); setImages([]); }}>Discard</Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Publishing to Facebook, Instagram and WhatsApp will be enabled in the next step, once your Meta App and Twilio sender are wired up.
+              Save first, then publish from the Recent drafts list below.
             </p>
           </CardContent>
         </Card>
@@ -217,16 +319,43 @@ const MarketingStudio = ({ userId, isAdmin }: Props) => {
           ) : (
             <div className="space-y-3">
               {drafts.map((d: any) => (
-                <div key={d.id} className="flex items-start justify-between border rounded-md p-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm line-clamp-2">{d.caption || <em className="text-muted-foreground">No caption</em>}</p>
-                    <div className="mt-1 flex gap-2 text-xs text-muted-foreground">
-                      <Badge variant="secondary">{d.direction}</Badge>
-                      <Badge variant="outline">{d.status}</Badge>
-                      <span>{new Date(d.created_at).toLocaleString()}</span>
-                      <span>{d.image_urls?.length ?? 0} image(s)</span>
-                    </div>
+                <div key={d.id} className="border rounded-md p-3 space-y-2">
+                  <p className="text-sm line-clamp-3 whitespace-pre-wrap">{d.caption || <em className="text-muted-foreground">No caption</em>}</p>
+                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground items-center">
+                    <Badge variant="secondary">{d.direction}</Badge>
+                    <Badge variant={d.status === "published" ? "default" : d.status === "failed" ? "destructive" : "outline"}>{d.status}</Badge>
+                    <span>{new Date(d.created_at).toLocaleString()}</span>
+                    <span>{d.image_urls?.length ?? 0} image(s)</span>
                   </div>
+                  {d.status !== "published" && (
+                    <>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {accounts.map((a: any) => {
+                          const active = (selectedAccounts[d.id] ?? []).includes(a.id);
+                          return (
+                            <button
+                              key={a.id}
+                              onClick={() => toggleAccountForPost(d.id, a.id)}
+                              className={`text-xs inline-flex items-center gap-1 px-2 py-1 rounded border ${active ? "bg-accent text-accent-foreground border-accent" : "bg-background"}`}
+                            >
+                              {iconFor(a.platform)} {a.display_name || a.platform}
+                            </button>
+                          );
+                        })}
+                        {accounts.length === 0 && (
+                          <span className="text-xs text-muted-foreground">Connect an account above to publish.</span>
+                        )}
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => publishDraft(d.id)}
+                        disabled={publishingId === d.id || (selectedAccounts[d.id]?.length ?? 0) === 0}
+                      >
+                        {publishingId === d.id ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Publishing…</> : <><Send className="h-4 w-4 mr-2" />Publish now</>}
+                      </Button>
+                    </>
+                  )}
+                  {d.error && <p className="text-xs text-destructive">{d.error}</p>}
                 </div>
               ))}
             </div>
