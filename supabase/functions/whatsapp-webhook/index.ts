@@ -104,6 +104,9 @@ Deno.serve(async (req) => {
     // ===== DETERMINISTIC COMMANDS =====
     const lower = body.toLowerCase().trim();
     let reply: string | null = null;
+    const currentCartTotal = state.cart.length
+      ? cartTotalCents(state.cart, bookList, discountPercent)
+      : 0;
 
     // CANCEL — reset
     if (/^(cancel|reset|start over|clear)$/i.test(lower)) {
@@ -112,6 +115,16 @@ Deno.serve(async (req) => {
       state.pending_order_id = null;
       state.upsell_ebook_id = null;
       reply = "Cart cleared. What would you like to explore? Ask for a topic (e.g. 'prayer', 'marriage', 'youth') or reply CATALOG to see books.";
+    }
+
+    // Recovery: old free-resource carts could be left waiting for payment.
+    // If a cart is already K0, deliver it immediately on the next message.
+    else if (state.cart.length > 0 && currentCartTotal === 0 && state.stage !== "confirm_upsell") {
+      reply = await fulfillFreeOrder(supabase, state.cart, bookList, from);
+      state.cart = [];
+      state.stage = "idle";
+      state.pending_order_id = null;
+      state.upsell_ebook_id = null;
     }
 
     // CATALOG / LIST
@@ -161,8 +174,15 @@ Deno.serve(async (req) => {
         state.cart!.push({ ebookId: state.upsell_ebook_id, discounted: true });
       }
       state.upsell_ebook_id = null;
-      state.stage = "awaiting_payment_details";
-      reply = `Added! ✅\n\n${cartSummary(state.cart!, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 0977xxxxxxx*\n• *AIRTEL 0977xxxxxxx*`;
+      if (cartTotalCents(state.cart!, bookList, discountPercent) === 0) {
+        reply = await fulfillFreeOrder(supabase, state.cart!, bookList, from);
+        state.cart = [];
+        state.stage = "idle";
+        state.pending_order_id = null;
+      } else {
+        state.stage = "awaiting_payment_details";
+        reply = `Added! ✅\n\n${cartSummary(state.cart!, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 0977xxxxxxx*\n• *AIRTEL 0977xxxxxxx*`;
+      }
     } else if (state.stage === "confirm_upsell" && /^(no|n|skip|nope)$/i.test(lower)) {
       state.upsell_ebook_id = null;
       if (cartTotalCents(state.cart!, bookList, discountPercent) === 0) {
@@ -181,7 +201,13 @@ Deno.serve(async (req) => {
       const phoneMatch = body.match(/(\+?\d[\d\s-]{7,})/);
       const operator = opMatch![1].toLowerCase();
       const phone = phoneMatch ? phoneMatch[1].replace(/[^\d+]/g, "") : "";
-      if (!phone || phone.replace(/\D/g, "").length < 9) {
+      if (cartTotalCents(state.cart!, bookList, discountPercent) === 0) {
+        reply = await fulfillFreeOrder(supabase, state.cart!, bookList, from);
+        state.cart = [];
+        state.stage = "idle";
+        state.pending_order_id = null;
+        state.upsell_ebook_id = null;
+      } else if (!phone || phone.replace(/\D/g, "").length < 9) {
         reply = "Please include your full mobile money number, e.g. MTN 0977123456";
       } else {
         const result = await createLencoOrder(supabase, state.cart!, from, phone, operator, discountPercent);
