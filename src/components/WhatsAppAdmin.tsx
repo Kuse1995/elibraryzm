@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Send, Users, Copy, Link as LinkIcon } from "lucide-react";
+import { MessageCircle, Send, Users, Copy, Link as LinkIcon, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -40,6 +40,38 @@ const WhatsAppAdmin = () => {
       return data;
     },
   });
+
+  const { data: messages = [] } = useQuery({
+    queryKey: ["admin-wa-messages"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("whatsapp_messages")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return data as any[];
+    },
+    refetchInterval: 15000,
+  });
+
+  const nameForPhone = (phone: string) => {
+    const sub = (subscribers as any[]).find((s) => s.phone_e164 === phone);
+    return sub?.display_name || null;
+  };
+
+  const intentBadge = (intent: string) => {
+    switch (intent) {
+      case "buying":
+        return <Badge className="bg-accent text-accent-foreground">Buying</Badge>;
+      case "browsing":
+        return <Badge variant="secondary">Browsing</Badge>;
+      case "human_request":
+        return <Badge variant="destructive">Wants human</Badge>;
+      default:
+        return <Badge variant="outline">Other</Badge>;
+    }
+  };
 
   const { data: waAccount } = useQuery({
     queryKey: ["admin-wa-account"],
@@ -201,6 +233,65 @@ const WhatsAppAdmin = () => {
                 </TableCell>
               </TableRow>
             ))}
+          </TableBody>
+        </Table>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Message Log</CardTitle>
+          <CardDescription>
+            Every WhatsApp message in and out, tagged by intent. When a customer wants a human or asks about non-store matters, Grace refers them to Abraham on +260 972 064 502.
+          </CardDescription>
+        </CardHeader>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[70px]">Dir</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>Intent</TableHead>
+              <TableHead>Message</TableHead>
+              <TableHead className="text-right">When</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {messages.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-6">
+                  No messages yet.
+                </TableCell>
+              </TableRow>
+            )}
+            {messages.map((m) => {
+              const name = m.profile_name || nameForPhone(m.phone_e164) || "—";
+              return (
+                <TableRow key={m.id}>
+                  <TableCell>
+                    {m.direction === "in" ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                        <ArrowDownLeft className="h-3.5 w-3.5" /> In
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs text-accent">
+                        <ArrowUpRight className="h-3.5 w-3.5" /> Out
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm">{name}</TableCell>
+                  <TableCell className="font-mono text-xs">{m.phone_e164}</TableCell>
+                  <TableCell>{intentBadge(m.intent)}</TableCell>
+                  <TableCell className="text-sm max-w-md">
+                    <div className="line-clamp-3 whitespace-pre-wrap">
+                      {m.body || (m.media_count ? `📎 ${m.media_count} media attachment${m.media_count > 1 ? "s" : ""}` : "—")}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right text-xs text-muted-foreground whitespace-nowrap">
+                    {new Date(m.created_at).toLocaleString()}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </Card>
