@@ -9,7 +9,11 @@ const corsHeaders = {
 const LENCO_API_BASE = "https://api.lenco.co/access/v2";
 
 function lencoFailureReason(payload: any) {
-  return payload?.reasonForFailure || payload?.failureReason || payload?.reason || payload?.message || "Payment failed";
+  const reason = payload?.reasonForFailure || payload?.failureReason || payload?.reason || payload?.message || "Payment failed";
+  if (String(reason).trim().toLowerCase() === "failed") {
+    return "The mobile money prompt was not completed. Please confirm the phone has MTN/Airtel Mobile Money active, keep the phone unlocked, and try again.";
+  }
+  return reason;
 }
 
 Deno.serve(async (req) => {

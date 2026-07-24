@@ -48,7 +48,11 @@ function normalizeZambianPhone(raw: string, operator: string) {
 }
 
 function lencoFailureReason(payload: any) {
-  return payload?.data?.reasonForFailure || payload?.data?.failureReason || payload?.data?.reason || payload?.data?.message || payload?.message || "Payment failed";
+  const reason = payload?.data?.reasonForFailure || payload?.data?.failureReason || payload?.data?.reason || payload?.data?.message || payload?.message || "Payment failed";
+  if (String(reason).trim().toLowerCase() === "failed") {
+    return "The mobile money prompt was not completed. Please confirm the phone has MTN/Airtel Mobile Money active, keep the phone unlocked, and try again.";
+  }
+  return reason;
 }
 
 Deno.serve(async (req) => {

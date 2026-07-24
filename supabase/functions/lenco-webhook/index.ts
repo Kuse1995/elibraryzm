@@ -46,7 +46,10 @@ Deno.serve(async (req) => {
     }
 
     let newStatus = order.status;
-    const failureReason = data.reasonForFailure || data.failureReason || data.reason || data.message || null;
+    const rawFailureReason = data.reasonForFailure || data.failureReason || data.reason || data.message || null;
+    const failureReason = String(rawFailureReason || "").trim().toLowerCase() === "failed"
+      ? "The mobile money prompt was not completed. Please confirm the phone has MTN/Airtel Mobile Money active, keep the phone unlocked, and try again."
+      : rawFailureReason;
 
     if (event === "collection.successful" || data.status === "successful") {
       newStatus = "completed";
