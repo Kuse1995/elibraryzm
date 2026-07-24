@@ -6,7 +6,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-internal-secret",
 };
 
-const GEMINI_TEXT_MODEL = "gemini-2.5-flash";
+const KIMI_TEXT_MODEL = "kimi-k3";
+const KIMI_BASE = "https://api.moonshot.ai/v1";
 const GEMINI_IMAGE_MODEL = "gemini-3.1-flash-lite-image";
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
@@ -60,14 +61,31 @@ async function callGemini(apiKey: string, model: string, body: unknown) {
   return res.json();
 }
 
+async function callKimi(apiKey: string, prompt: string): Promise<string> {
+  const res = await fetch(`${KIMI_BASE}/chat/completions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: KIMI_TEXT_MODEL,
+      reasoning_effort: "low",
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+  if (!res.ok) throw new Error(`Kimi ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  return (data?.choices?.[0]?.message?.content ?? "").trim();
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const service = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const geminiKey = Deno.env.get("GEMINI_API_KEY");
+    const moonshotKey = Deno.env.get("MOONSHOT_API_KEY");
     const internalSecret = Deno.env.get("AUTOMATION_API_KEY");
     if (!geminiKey) return json({ error: "GEMINI_API_KEY missing" }, 500);
+    if (!moonshotKey) return json({ error: "MOONSHOT_API_KEY missing" }, 500);
 
     const { data: schedules, error } = await service
       .from("post_schedules")
@@ -104,11 +122,7 @@ Direction: ${direction.toUpperCase()} — ${directionGuidance[direction] ?? ""}
 ${sch.audience ? `Audience: ${sch.audience}\n` : ""}${sch.style_hints ? `Style hints: ${sch.style_hints}\n` : ""}
 Write ONE post (max ~180 words) with an attention-grabbing first line, body copy, and 3-6 hashtags on the last line. Plain text only.`;
 
-        const capRes = await callGemini(geminiKey, GEMINI_TEXT_MODEL, {
-          contents: [{ role: "user", parts: [{ text: captionPrompt }] }],
-        });
-        const caption: string =
-          capRes?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).filter(Boolean).join("\n") ?? "";
+        const caption: string = await callKimi(moonshotKey, captionPrompt);
 
         // Generate images
         const imageCount = Math.max(1, Math.min(10, sch.image_count || 1));
