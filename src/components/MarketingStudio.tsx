@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, Save, Image as ImageIcon, Facebook, Instagram, Send, Link2, Trash2, MessageCircle } from "lucide-react";
+import { Loader2, Sparkles, Save, Image as ImageIcon, Facebook, Instagram, Send, Link2, Trash2, MessageCircle, Zap } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -32,6 +33,19 @@ const MarketingStudio = ({ userId, isAdmin }: Props) => {
   const [saving, setSaving] = useState(false);
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [selectedAccounts, setSelectedAccounts] = useState<Record<string, string[]>>({});
+
+  // Auto-pilot state
+  const [autoActive, setAutoActive] = useState(false);
+  const [autoMode, setAutoMode] = useState<"mix" | "template">("mix");
+  const [autoPostsPerWeek, setAutoPostsPerWeek] = useState(3);
+  const [autoImageCount, setAutoImageCount] = useState(1);
+  const [autoStyleHints, setAutoStyleHints] = useState("");
+  const [autoAudience, setAutoAudience] = useState("");
+  const [autoMixSales, setAutoMixSales] = useState(50);
+  const [autoMixEdu, setAutoMixEdu] = useState(30);
+  const [autoMixEnt, setAutoMixEnt] = useState(20);
+  const [autoTargets, setAutoTargets] = useState<string[]>([]);
+  const [savingSchedule, setSavingSchedule] = useState(false);
 
   const { data: accounts = [], refetch: refetchAccounts } = useQuery({
     queryKey: ["social-accounts", userId],
@@ -67,6 +81,63 @@ const MarketingStudio = ({ userId, isAdmin }: Props) => {
       return data;
     },
   });
+
+  const { data: schedule } = useQuery({
+    queryKey: ["post-schedule", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("post_schedules")
+        .select("*")
+        .eq("owner_user_id", userId)
+        .maybeSingle();
+      if (error) throw error;
+      if (data) {
+        setAutoActive(!!data.active);
+        setAutoMode((data.mode as any) ?? "mix");
+        setAutoPostsPerWeek(data.posts_per_week ?? 3);
+        setAutoImageCount((data as any).image_count ?? 1);
+        setAutoStyleHints((data as any).style_hints ?? "");
+        setAutoAudience((data as any).audience ?? "");
+        setAutoTargets(((data as any).target_account_ids ?? []) as string[]);
+        const m: any = data.mix ?? {};
+        setAutoMixSales(m.sales ?? 50);
+        setAutoMixEdu(m.educational ?? 30);
+        setAutoMixEnt(m.entertainment ?? 20);
+      }
+      return data;
+    },
+  });
+
+  const saveSchedule = async () => {
+    setSavingSchedule(true);
+    try {
+      const payload = {
+        owner_user_id: userId,
+        active: autoActive,
+        mode: autoMode,
+        posts_per_week: autoPostsPerWeek,
+        image_count: autoImageCount,
+        style_hints: autoStyleHints || null,
+        audience: autoAudience || null,
+        target_account_ids: autoTargets,
+        mix: { sales: autoMixSales, educational: autoMixEdu, entertainment: autoMixEnt },
+      };
+      const { error } = await supabase
+        .from("post_schedules")
+        .upsert(payload as any, { onConflict: "owner_user_id" });
+      if (error) throw error;
+      toast.success(autoActive ? "Auto-pilot enabled" : "Schedule saved");
+      qc.invalidateQueries({ queryKey: ["post-schedule", userId] });
+    } catch (e: any) {
+      toast.error(e.message || "Save failed");
+    } finally {
+      setSavingSchedule(false);
+    }
+  };
+
+  const toggleAutoTarget = (id: string) => {
+    setAutoTargets((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  };
 
   const connectMeta = async () => {
     try {
