@@ -293,6 +293,10 @@ const AuthorDashboard = () => {
             </Card>
           )}
         </TabsContent>
+
+        <TabsContent value="marketing" className="mt-6">
+          {user && <MarketingStudio userId={user.id} />}
+        </TabsContent>
       </Tabs>
     </div>
   );
