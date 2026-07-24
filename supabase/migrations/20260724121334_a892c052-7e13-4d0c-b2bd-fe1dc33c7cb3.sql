@@ -1,0 +1,1 @@
+ALTER TABLE public.social_accounts ADD CONSTRAINT social_accounts_platform_external_key UNIQUE (platform, external_id);
