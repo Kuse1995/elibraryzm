@@ -62,6 +62,65 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_posts: {
+        Row: {
+          caption: string
+          created_at: string
+          direction: string
+          ebook_id: string | null
+          error: string | null
+          id: string
+          image_urls: string[]
+          owner_user_id: string
+          platform_post_ids: Json
+          published_at: string | null
+          scheduled_at: string | null
+          status: string
+          target_account_ids: string[]
+          updated_at: string
+        }
+        Insert: {
+          caption?: string
+          created_at?: string
+          direction?: string
+          ebook_id?: string | null
+          error?: string | null
+          id?: string
+          image_urls?: string[]
+          owner_user_id: string
+          platform_post_ids?: Json
+          published_at?: string | null
+          scheduled_at?: string | null
+          status?: string
+          target_account_ids?: string[]
+          updated_at?: string
+        }
+        Update: {
+          caption?: string
+          created_at?: string
+          direction?: string
+          ebook_id?: string | null
+          error?: string | null
+          id?: string
+          image_urls?: string[]
+          owner_user_id?: string
+          platform_post_ids?: Json
+          published_at?: string | null
+          scheduled_at?: string | null
+          status?: string
+          target_account_ids?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_posts_ebook_id_fkey"
+            columns: ["ebook_id"]
+            isOneToOne: false
+            referencedRelation: "ebooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
@@ -182,6 +241,45 @@ export type Database = {
         }
         Relationships: []
       }
+      post_schedules: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          last_run_at: string | null
+          mix: Json
+          mode: string
+          owner_user_id: string
+          posts_per_week: number
+          template: Json
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          last_run_at?: string | null
+          mix?: Json
+          mode?: string
+          owner_user_id: string
+          posts_per_week?: number
+          template?: Json
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          last_run_at?: string | null
+          mix?: Json
+          mode?: string
+          owner_user_id?: string
+          posts_per_week?: number
+          template?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -227,6 +325,48 @@ export type Database = {
         }
         Relationships: []
       }
+      social_accounts: {
+        Row: {
+          access_token: string | null
+          created_at: string
+          display_name: string | null
+          external_id: string
+          id: string
+          is_central: boolean
+          metadata: Json
+          owner_user_id: string | null
+          platform: string
+          token_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string
+          display_name?: string | null
+          external_id: string
+          id?: string
+          is_central?: boolean
+          metadata?: Json
+          owner_user_id?: string | null
+          platform: string
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string
+          display_name?: string | null
+          external_id?: string
+          id?: string
+          is_central?: boolean
+          metadata?: Json
+          owner_user_id?: string | null
+          platform?: string
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -242,6 +382,60 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      whatsapp_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string
+          phone_e164: string
+          state: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          phone_e164: string
+          state?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          phone_e164?: string
+          state?: Json
+        }
+        Relationships: []
+      }
+      whatsapp_subscribers: {
+        Row: {
+          created_at: string
+          id: string
+          opted_in_at: string
+          opted_out_at: string | null
+          phone_e164: string
+          source: string | null
+          tags: string[]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          opted_in_at?: string
+          opted_out_at?: string | null
+          phone_e164: string
+          source?: string | null
+          tags?: string[]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          opted_in_at?: string
+          opted_out_at?: string | null
+          phone_e164?: string
+          source?: string | null
+          tags?: string[]
         }
         Relationships: []
       }

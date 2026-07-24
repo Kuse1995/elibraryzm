@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AuthorWallet from "@/components/AuthorWallet";
+import MarketingStudio from "@/components/MarketingStudio";
 
 const AuthorDashboard = () => {
   const { user, isAuthor, loading: authLoading } = useAuth();
@@ -180,6 +181,7 @@ const AuthorDashboard = () => {
           <TabsTrigger value="submit">Submit Book</TabsTrigger>
           <TabsTrigger value="wallet">Wallet</TabsTrigger>
           <TabsTrigger value="sales">Sales Report</TabsTrigger>
+          <TabsTrigger value="marketing">Marketing</TabsTrigger>
         </TabsList>
 
         <TabsContent value="books" className="mt-6">
@@ -290,6 +292,10 @@ const AuthorDashboard = () => {
               </Table>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="marketing" className="mt-6">
+          {user && <MarketingStudio userId={user.id} />}
         </TabsContent>
       </Tabs>
     </div>
