@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     // Find order in DB
     const { data: order, error: queryError } = await supabase
       .from("orders")
-      .select("id, status, payment_reference")
+      .select("id, status, payment_reference, failure_reason")
       .ilike("payment_reference", `${reference}%`)
       .maybeSingle();
 
@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
     // If already completed or failed, return immediately
     if (order.status === "completed" || order.status === "failed") {
       return new Response(
-        JSON.stringify({ status: order.status }),
+        JSON.stringify({ status: order.status, failure_reason: order.failure_reason }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -88,6 +88,7 @@ Deno.serve(async (req) => {
       const collections = Array.isArray(lencoData.data) ? lencoData.data : [lencoData.data];
       const collection = collections.find((c: any) => c?.reference === originalRef);
       const lencoStatus = collection?.status;
+      const lencoReason = collection?.reason || collection?.failureReason || collection?.message;
 
       if (lencoStatus === "successful") {
         await supabase
@@ -102,11 +103,11 @@ Deno.serve(async (req) => {
       } else if (lencoStatus === "failed") {
         await supabase
           .from("orders")
-          .update({ status: "failed", updated_at: new Date().toISOString() })
+          .update({ status: "failed", failure_reason: lencoReason, updated_at: new Date().toISOString() })
           .eq("id", order.id);
         console.log(`Order ${order.id} marked failed via Lenco poll`);
         return new Response(
-          JSON.stringify({ status: "failed" }),
+          JSON.stringify({ status: "failed", failure_reason: lencoReason }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
