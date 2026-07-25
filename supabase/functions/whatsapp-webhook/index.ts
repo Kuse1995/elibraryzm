@@ -214,13 +214,21 @@ Deno.serve(async (req) => {
     }
 
     // Quick greetings should never wait on AI — Twilio can drop slow webhook replies.
-    else if (/^(hi|hie|hello|hey|bello|good morning|good afternoon|good evening)$/i.test(lower) && state.stage !== "confirm_upsell") {
+    else if (
+      (/^(hi|hie|hello|hey|bello|good morning|good afternoon|good evening)$/i.test(lower)
+        || /can i get more info on this/i.test(lower)
+        || /^(more info|info|interested|tell me more)\b/i.test(lower))
+      && state.stage !== "confirm_upsell"
+    ) {
       if (state.stage === "payment_pending") {
         reply = "Hi, I'm here. Your payment is still being checked — once it is confirmed, I'll send the download link here. If you want to start over, reply CANCEL.";
       } else if (state.stage === "awaiting_payment_details" && state.cart.length > 0) {
         reply = `${cartSummary(state.cart, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 096xxxxxxx*\n• *AIRTEL 097xxxxxxx*`;
       } else {
-        reply = `Hi there! 👋 I'm Grace from E Library.\n\nReply *CATALOG* to see all ${bookList.length} books, or tell me what kind of Christian book you're looking for.`;
+        const featured = bookList.slice(0, 3)
+          .map((b, i) => `${i + 1}. *${b.title}* — ${b.price === 0 ? "FREE" : money(Math.round(b.price * 100))}`)
+          .join("\n");
+        reply = `Hi there! 👋 Welcome to *E Library* — Zambia's Christian ebook store. I'm Grace, here to help you find a book that speaks to you.\n\nHere are a few to start with:\n${featured}\n\n📚 Reply *CATALOG* to see all ${bookList.length} books\n🔎 Or tell me a topic (e.g. *prayer*, *marriage*, *youth*, *finances*) and I'll suggest something.\n\nWhen you're ready, reply *BUY 1* (or the book number) to purchase.`;
       }
     }
 
