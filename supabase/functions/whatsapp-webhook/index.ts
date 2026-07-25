@@ -226,7 +226,7 @@ Deno.serve(async (req) => {
         reply = `${cartSummary(state.cart, bookList, discountPercent)}\n\nTo pay, reply with your operator and Mobile Money number:\n• *MTN 096xxxxxxx*\n• *AIRTEL 097xxxxxxx*`;
       } else {
         const featured = bookList.slice(0, 3)
-          .map((b, i) => `${i + 1}. *${b.title}* — ${b.price === 0 ? "FREE" : money(Math.round(b.price * 100))}`)
+          .map((b, i) => `${i + 1}. *${b.title}* — ${b.price === 0 ? "FREE" : money(b.price)}`)
           .join("\n");
         reply = `Hi there! 👋 Welcome to *E Library* — Zambia's Christian ebook store. I'm Grace, here to help you find a book that speaks to you.\n\nHere are a few to start with:\n${featured}\n\n📚 Reply *CATALOG* to see all ${bookList.length} books\n🔎 Or tell me a topic (e.g. *prayer*, *marriage*, *youth*, *finances*) and I'll suggest something.\n\nWhen you're ready, reply *BUY 1* (or the book number) to purchase.`;
       }
