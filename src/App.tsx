@@ -19,6 +19,7 @@ import AuthorDashboard from "./pages/AuthorDashboard";
 import UpgradeToAuthor from "./pages/UpgradeToAuthor";
 import WhatsAppSubscribe from "./pages/WhatsAppSubscribe";
 import Games from "./pages/Games";
+import Studio from "./pages/Studio";
 import GamePage from "./pages/GamePage";
 import NotFound from "./pages/NotFound";
 
@@ -47,6 +48,7 @@ const App = () => (
                 <Route path="/downloads" element={<Downloads />} />
                 <Route path="/whatsapp" element={<WhatsAppSubscribe />} />
                 <Route path="/games" element={<Games />} />
+                <Route path="/studio" element={<Studio />} />
                 <Route path="/games/:slug" element={<GamePage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

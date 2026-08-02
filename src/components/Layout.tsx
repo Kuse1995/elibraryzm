@@ -17,6 +17,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     { to: "/", label: "Home" },
     { to: "/browse", label: "Browse" },
     { to: "/games", label: "Games" },
+    { to: "/studio", label: "Book Studio" },
     ...(user ? [{ to: "/my-library", label: "My Library" }] : []),
     ...(isAuthor ? [{ to: "/author", label: "Author Portal" }] : []),
     ...(isAdmin ? [{ to: "/admin", label: "Admin" }] : []),
@@ -115,6 +116,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 )}
                 <Link to="/whatsapp" className="block hover:text-accent">Subscribe on WhatsApp</Link>
                 <Link to="/games" className="block hover:text-accent">Play Bible Games</Link>
+                <Link to="/studio" className="block hover:text-accent">Book Studio - Write My Book</Link>
               </div>
             </div>
             <div>
