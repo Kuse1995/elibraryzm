@@ -18,6 +18,8 @@ import Downloads from "./pages/Downloads";
 import AuthorDashboard from "./pages/AuthorDashboard";
 import UpgradeToAuthor from "./pages/UpgradeToAuthor";
 import WhatsAppSubscribe from "./pages/WhatsAppSubscribe";
+import Games from "./pages/Games";
+import GamePage from "./pages/GamePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +46,8 @@ const App = () => (
                 <Route path="/payment-verify" element={<PaymentVerify />} />
                 <Route path="/downloads" element={<Downloads />} />
                 <Route path="/whatsapp" element={<WhatsAppSubscribe />} />
+                <Route path="/games" element={<Games />} />
+                <Route path="/games/:slug" element={<GamePage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Layout>

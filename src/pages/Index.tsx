@@ -79,6 +79,31 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Games teaser */}
+      <section className="container py-10">
+        <Link
+          to="/games"
+          className="group relative block overflow-hidden rounded-2xl bg-gradient-to-r from-navy via-primary to-navy text-primary-foreground p-8 md:p-10 shadow-lg"
+        >
+          <div className="absolute -top-10 right-10 h-40 w-40 rounded-full bg-accent/20 blur-2xl" />
+          <div className="relative flex flex-col md:flex-row md:items-center gap-6">
+            <div className="text-6xl md:text-7xl">🎮</div>
+            <div className="flex-1">
+              <span className="inline-block rounded-full bg-accent px-3 py-1 text-xs font-bold uppercase tracking-wide text-accent-foreground mb-3">
+                New
+              </span>
+              <h2 className="font-display text-2xl md:text-3xl font-bold mb-2">Play. Learn. Grow in Faith.</h2>
+              <p className="text-primary-foreground/80 max-w-xl">
+                Six free Bible games for the whole family - trivia, memory, scripture puzzles and more.
+              </p>
+            </div>
+            <span className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 font-semibold text-accent-foreground group-hover:bg-accent/90 transition-colors shrink-0">
+              Explore Games <ArrowRight className="h-4 w-4" />
+            </span>
+          </div>
+        </Link>
+      </section>
+
       {/* Featured */}
       {featured.length > 0 && (
         <section className="bg-secondary/50 py-16">

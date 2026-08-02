@@ -16,6 +16,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const navLinks = [
     { to: "/", label: "Home" },
     { to: "/browse", label: "Browse" },
+    { to: "/games", label: "Games" },
     ...(user ? [{ to: "/my-library", label: "My Library" }] : []),
     ...(isAuthor ? [{ to: "/author", label: "Author Portal" }] : []),
     ...(isAdmin ? [{ to: "/admin", label: "Admin" }] : []),
@@ -113,6 +114,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   <Link to="/auth" className="block hover:text-accent">Sign In</Link>
                 )}
                 <Link to="/whatsapp" className="block hover:text-accent">Subscribe on WhatsApp</Link>
+                <Link to="/games" className="block hover:text-accent">Play Bible Games</Link>
               </div>
             </div>
             <div>
