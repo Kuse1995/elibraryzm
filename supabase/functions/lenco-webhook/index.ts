@@ -77,6 +77,8 @@ Deno.serve(async (req) => {
 
       // Auto-notify automation platform on completed sales
       if (newStatus === "completed") {
+      // Auto-notify automation platform on completed sales
+      if (newStatus === "completed") {
         // WhatsApp order? Deliver PDFs back over WhatsApp.
         if (order.whatsapp_phone) {
           try {
@@ -84,6 +86,26 @@ Deno.serve(async (req) => {
           } catch (waErr) {
             console.error("WhatsApp delivery failed (non-blocking):", waErr);
           }
+        }
+
+        // Grant permanent access: one row per purchased ebook so buyers can
+        // always reopen their library (user_ebook_access table).
+        const { data: grantItems } = await supabase
+          .from('order_items')
+          .select('ebook_id')
+          .eq('order_id', order.id);
+        const grants = (grantItems || []).map((item: any) => ({
+          user_id: order.user_id || null,
+          guest_email: order.user_id ? null : order.guest_email || null,
+          ebook_id: item.ebook_id,
+          order_id: order.id,
+        }));
+        if (grants.length) {
+          const { error: grantError } = await supabase.from('user_ebook_access').insert(grants);
+          if (grantError) console.error('Access grant insert failed:', grantError);
+          else console.log('Granted access to ' + grants.length + ' ebook(s) for order ' + order.id);
+        }
+
         }
 
         try {
