@@ -77,8 +77,6 @@ Deno.serve(async (req) => {
 
       // Auto-notify automation platform on completed sales
       if (newStatus === "completed") {
-      // Auto-notify automation platform on completed sales
-      if (newStatus === "completed") {
         // WhatsApp order? Deliver PDFs back over WhatsApp.
         if (order.whatsapp_phone) {
           try {
@@ -104,8 +102,6 @@ Deno.serve(async (req) => {
           const { error: grantError } = await supabase.from('user_ebook_access').insert(grants);
           if (grantError) console.error('Access grant insert failed:', grantError);
           else console.log('Granted access to ' + grants.length + ' ebook(s) for order ' + order.id);
-        }
-
         }
 
         try {
