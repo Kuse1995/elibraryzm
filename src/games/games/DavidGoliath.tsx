@@ -53,6 +53,7 @@ export default function DavidGoliath() {
 
   const sceneRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ x: number; y: number } | null>(null);
+  const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const goliathRef = useRef({ x: W * 0.7, t: 0 });
   const flightRef = useRef<Flight | null>(null);
   const [goliathX, setGoliathX] = useState(W * 0.7);
@@ -116,7 +117,7 @@ export default function DavidGoliath() {
         setHits((h) => h + 1);
         setTimeout(() => {
           setPhase("won");
-          record(500 + hits * 200);
+          record(700 + hits * 200);
         }, 1400);
         return;
       }
@@ -124,15 +125,13 @@ export default function DavidGoliath() {
         hit = true;
         setStone(null);
         setPhase("aim");
-        setStonesLeft((n) => {
-          const left = n - 1;
-          setTaunt(TAUNTS[Math.floor(Math.random() * TAUNTS.length)]);
-          sound.play("wrong");
-          if (left <= 0) {
-            setTimeout(() => setPhase("lost"), 900);
-          }
-          return left;
-        });
+        const left = stonesLeft - 1;
+        setStonesLeft(left);
+        setTaunt(TAUNTS[Math.floor(Math.random() * TAUNTS.length)]);
+        sound.play("wrong");
+        if (left <= 0) {
+          setTimeout(() => setPhase("lost"), 900);
+        }
         setTimeout(() => setTaunt(null), 2600);
         return;
       }
@@ -154,15 +153,19 @@ export default function DavidGoliath() {
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     const p = aimFromEvent(e);
     dragRef.current = p;
+    lastPointRef.current = p;
     setDragPoint(p);
   };
 
   const onMove = (e: React.PointerEvent) => {
     if (!dragRef.current || phase !== "aim") return;
     const p = aimFromEvent(e);
+    lastPointRef.current = p;
     setDragPoint(p);
-    const vx = (dragRef.current.x - p.x) * 0.075;
-    const vy = (dragRef.current.y - p.y) * 0.075;
+    const pull = Math.min(220, Math.hypot(p.x - 150, p.y - 240));
+    const dirX = p.x - 150 < 0 ? 1 : -1;
+    const vx = dirX * pull * 0.16;
+    const vy = -pull * 0.14;
     const preview: Stone[] = [];
     for (let i = 1; i <= 14; i++) {
       const t = i * 2.2;
@@ -173,8 +176,9 @@ export default function DavidGoliath() {
 
   const onUp = () => {
     if (!dragRef.current || phase !== "aim" || !level) return;
-    const p = dragRef.current;
+    const p = lastPointRef.current || dragRef.current;
     dragRef.current = null;
+    lastPointRef.current = null;
     setDragPoint(null);
     const sx = 150;
     const sy = 240;
@@ -210,9 +214,9 @@ export default function DavidGoliath() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="mb-3 flex items-center justify-between text-sm text-muted-foreground">
-        <span>Stones: {"🪨".repeat(stonesLeft) || "none"}</span>
-        <span>{level.label}</span>
+      <div className="mb-3 flex items-center justify-between text-sm font-semibold">
+        <span className="rounded-full bg-navy text-white px-3 py-1">{"🪨".repeat(Math.max(0, stonesLeft)) || "No stones left"}</span>
+        <span className="rounded-full bg-secondary px-3 py-1 text-slate-700">{level.label}</span>
       </div>
 
       <div
@@ -302,8 +306,13 @@ export default function DavidGoliath() {
           )}
         </svg>
 
+        <div className="scene-deco" style={{ zIndex: 5 }}>
+          <span className="cloud" style={{ top: "8%", left: "4%", width: 90, height: 22, animationDuration: "30s", opacity: 0.55 }} />
+          <span className="cloud" style={{ top: "18%", right: "6%", width: 60, height: 15, animationDuration: "42s", animationDelay: "-12s", opacity: 0.4 }} />
+        </div>
+
         {phase === "aim" && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-navy/80 px-4 py-1.5 text-xs text-white backdrop-blur">
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-navy/85 border border-white/20 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur shadow-lg">
             🎯 Drag the sling back, then release to throw
           </div>
         )}
@@ -311,8 +320,8 @@ export default function DavidGoliath() {
 
       {(phase === "won" || phase === "lost") && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="max-w-md w-full rounded-2xl bg-card p-8 text-center shadow-2xl animate-fade-in">
-            <div className="text-6xl mb-3">{phase === "won" ? "🏆" : "🪨"}</div>
+          <div className="panel-glass max-w-md w-full p-8 text-center pop-in">
+            <div className="text-6xl mb-3 bounce-in inline-block">{phase === "won" ? "🏆" : "🪨"}</div>
             <h3 className="font-display text-2xl font-bold mb-2">
               {phase === "won" ? "The giant has fallen!" : "Goliath still stands"}
             </h3>
@@ -325,10 +334,10 @@ export default function DavidGoliath() {
               "The battle is the Lord's." — 1 Samuel 17:47
             </p>
             <div className="flex gap-3 justify-center">
-              <button onClick={() => start(level)} className="rounded-lg bg-accent px-6 py-2.5 font-semibold text-accent-foreground hover:bg-accent/90">
+              <button onClick={() => start(level)} className="btn-gold">
                 Play again
               </button>
-              <button onClick={() => setLevel(null)} className="rounded-lg border px-6 py-2.5 font-semibold hover:bg-muted">
+              <button onClick={() => setLevel(null)} className="rounded-full border-2 border-slate-200 px-6 py-2.5 font-semibold text-slate-700 hover:bg-slate-50">
                 Levels
               </button>
             </div>

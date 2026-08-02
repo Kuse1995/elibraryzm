@@ -27,6 +27,24 @@ function buildBank(name: string): { letter: string; id: number }[] {
   return shuffle([...letters, ...decoys]).map((letter, id) => ({ letter, id }));
 }
 
+function DetectiveScene() {
+  return (
+    <div className="scene-deco">
+      {[
+        { top: "10%", left: "6%", size: 5, delay: "0s" },
+        { top: "20%", left: "18%", size: 3, delay: "0.8s" },
+        { top: "8%", left: "44%", size: 4, delay: "1.4s" },
+        { top: "14%", left: "72%", size: 5, delay: "0.5s" },
+        { top: "8%", left: "90%", size: 4, delay: "1.1s" },
+        { top: "26%", left: "34%", size: 3, delay: "1.9s" },
+      ].map((s, i) => (
+        <span key={i} className="star" style={{ top: s.top, left: s.left, width: s.size, height: s.size, animationDelay: s.delay }} />
+      ))}
+      <span className="floaty absolute" style={{ top: "12%", right: "12%", fontSize: 34, opacity: 0.45 }}>🔍</span>
+    </div>
+  );
+}
+
 export default function WhoAmI() {
   const { stats, record } = useGameStats("who-am-i");
   const [phase, setPhase] = useState<"menu" | "play" | "done">("menu");
@@ -49,22 +67,12 @@ export default function WhoAmI() {
     setIdx(0);
     setTotal(0);
     setSolved(0);
-    beginRound(shuffle(CHARACTERS)[0] || CHARACTERS[0]);
     setPhase("play");
     sound.play("click");
   };
 
-  const beginRound = (c: Character) => {
-    setHintsUsed(1);
-    setBank(buildBank(c.name));
-    setUsed([]);
-    setAnswer([]);
-    setWrongPicks(0);
-    setRoundOver(null);
-  };
-
   useEffect(() => {
-    if (phase !== "play") return;
+    if (phase !== "play" || !character) return;
     setHintsUsed(1);
     setBank(buildBank(character.name));
     setUsed([]);
@@ -144,61 +152,71 @@ export default function WhoAmI() {
 
   if (phase === "menu") {
     return (
-      <div className="max-w-2xl mx-auto text-center">
-        <div className="text-6xl mb-4">🕵️</div>
-        <h2 className="font-display text-2xl md:text-3xl font-bold mb-2">Who Am I?</h2>
-        <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-          Six Bible heroes, five clues each. Reveal hints (each costs points),
-          spell the name, and join the hall of the faithful.
-        </p>
-        <button onClick={start} className="rounded-full bg-accent px-10 py-3 text-lg font-semibold text-accent-foreground hover:bg-accent/90 shadow-lg">
-          Start investigating 🔍
-        </button>
-        {stats.plays > 0 && <p className="mt-4 text-sm text-muted-foreground">Best: {stats.best} pts · played {stats.plays}×</p>}
+      <div className="game-scene scene-detect text-white">
+        <DetectiveScene />
+        <div className="relative max-w-2xl mx-auto text-center py-12 px-4">
+          <div className="text-6xl mb-4 floaty inline-block drop-shadow-xl">🕵️</div>
+          <h2 className="font-display text-2xl md:text-3xl font-bold mb-2">Who Am I?</h2>
+          <p className="text-white/80 mb-8 max-w-md mx-auto">
+            Six Bible heroes, five clues each. Reveal hints (each costs points),
+            spell the name, and join the hall of the faithful.
+          </p>
+          <button onClick={start} className="btn-gold text-lg">
+            Start investigating 🔍
+          </button>
+          {stats.plays > 0 && <p className="mt-4 text-sm text-white/60">Best: {stats.best} pts · played {stats.plays}×</p>}
+        </div>
       </div>
     );
   }
 
   if (phase === "done") {
     return (
-      <div className="max-w-md mx-auto text-center">
-        <div className="text-6xl mb-3">🏅</div>
-        <h3 className="font-display text-2xl font-bold mb-1">Case closed!</h3>
-        <p className="text-muted-foreground mb-6">You identified {solved} of {ROUNDS} Bible heroes.</p>
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className="rounded-xl bg-secondary p-4">
-            <div className="text-2xl font-bold">{total}</div>
-            <div className="text-xs text-muted-foreground">Points</div>
-          </div>
-          <div className="rounded-xl bg-secondary p-4">
-            <div className="text-2xl font-bold">{solved}/{ROUNDS}</div>
-            <div className="text-xs text-muted-foreground">Solved</div>
+      <div className="max-w-md mx-auto">
+        <div className="game-scene scene-detect text-white px-6 py-10 text-center">
+          <DetectiveScene />
+          <div className="relative">
+            <div className="text-6xl mb-3 bounce-in inline-block">🏅</div>
+            <h3 className="font-display text-2xl font-bold mb-1">Case closed!</h3>
+            <p className="text-white/80 mb-6">You identified {solved} of {ROUNDS} Bible heroes.</p>
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <div className="rounded-2xl bg-white/10 border border-white/20 backdrop-blur p-4">
+                <div className="text-3xl font-bold text-amber-300">{total}</div>
+                <div className="text-xs text-white/60">Points</div>
+              </div>
+              <div className="rounded-2xl bg-white/10 border border-white/20 backdrop-blur p-4">
+                <div className="text-3xl font-bold text-amber-300">{solved}/{ROUNDS}</div>
+                <div className="text-xs text-white/60">Solved</div>
+              </div>
+            </div>
+            <button onClick={start} className="btn-gold text-lg">
+              Play again
+            </button>
           </div>
         </div>
-        <button onClick={start} className="rounded-full bg-accent px-10 py-3 text-lg font-semibold text-accent-foreground hover:bg-accent/90 shadow-lg">
-          Play again
-        </button>
       </div>
     );
   }
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="mb-4 flex items-center justify-between text-sm text-muted-foreground">
-        <span>Mystery {idx + 1} of {ROUNDS}</span>
-        <span>Points {total} · solved {solved}</span>
+      <div className="mb-4 flex items-center justify-between text-sm font-semibold">
+        <span className="rounded-full bg-navy text-white px-3 py-1">Mystery {idx + 1} of {ROUNDS}</span>
+        <span className="rounded-full bg-secondary px-3 py-1 text-slate-700">Points {total} · solved {solved}</span>
       </div>
 
-      <div className="rounded-2xl border bg-card p-6 shadow-sm mb-4 text-center">
-        <div className="text-5xl mb-3">{character.emoji}</div>
+      <div className="panel-dark p-6 mb-4 text-center text-white">
+        <div className="text-5xl mb-3 floaty inline-block">{character.emoji}</div>
         <div className="mx-auto mb-4 max-w-md space-y-2">
           {character.hints.slice(0, hintsUsed).map((h, i) => (
-            <p key={i} className="rounded-lg bg-secondary/70 px-4 py-2 text-sm animate-fade-in">{i + 1}. {h}</p>
+            <p key={i} className="rounded-xl bg-white/10 border border-white/10 px-4 py-2 text-sm animate-fade-in">
+              <span className="font-bold text-amber-300 mr-1">{i + 1}.</span> {h}
+            </p>
           ))}
           {hintsUsed < character.hints.length && (
             <button
               onClick={nextHint}
-              className="rounded-lg border px-4 py-1.5 text-sm font-semibold text-muted-foreground hover:bg-muted"
+              className="rounded-full bg-white/10 border border-white/25 px-5 py-1.5 text-sm font-semibold text-white/85 hover:bg-white/20"
             >
               Reveal hint {hintsUsed + 1} (−20 pts)
             </button>
@@ -206,13 +224,13 @@ export default function WhoAmI() {
         </div>
       </div>
 
-      <div className={`rounded-2xl border bg-card p-6 shadow-sm mb-4 ${shake ? "animate-[shake_0.4s_ease-in-out]" : ""}`}>
+      <div className={"panel-glass p-6 mb-4 " + (shake ? "animate-[shake_0.4s_ease-in-out]" : "")}>
         <div className="flex justify-center gap-1.5 mb-4 min-h-[44px] flex-wrap">
           {Array.from({ length: character.name.length }).map((_, i) => (
             <button
               key={i}
               onClick={() => tapSlot(i)}
-              className="h-11 w-9 rounded-lg border-2 border-dashed border-muted-foreground/40 text-lg font-bold uppercase bg-muted/40 hover:border-accent transition-colors"
+              className="h-12 w-10 rounded-lg border-2 border-dashed border-slate-400/60 text-lg font-bold uppercase bg-slate-50 text-slate-800 hover:border-amber-400 transition-colors shadow-inner"
             >
               {answer[i] !== undefined ? bankById[answer[i]] || "" : ""}
             </button>
@@ -224,7 +242,7 @@ export default function WhoAmI() {
               key={tile.id}
               disabled={used.includes(tile.id) || roundOver !== null}
               onClick={() => tapLetter(tile.id)}
-              className="h-11 w-9 rounded-lg bg-navy text-white text-lg font-bold uppercase hover:bg-navy/80 disabled:opacity-25 transition-all"
+              className="tile-wood h-12 w-10 text-lg font-bold uppercase"
             >
               {tile.letter}
             </button>
@@ -234,7 +252,7 @@ export default function WhoAmI() {
           <button
             onClick={check}
             disabled={answer.length !== character.name.length || roundOver !== null}
-            className="rounded-full bg-accent px-8 py-2.5 font-semibold text-accent-foreground hover:bg-accent/90 disabled:opacity-30"
+            className="btn-gold"
           >
             Check answer
           </button>

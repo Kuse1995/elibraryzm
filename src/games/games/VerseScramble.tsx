@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useRef, useState } from "react";
 import { sound } from "../sound";
 import { confettiBurst } from "../confetti";
 import { useGameStats } from "../useGameStats";
@@ -15,6 +15,17 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+function VerseScene() {
+  return (
+    <div className="scene-deco">
+      <span className="cloud" style={{ top: "10%", width: 120, height: 28, animationDuration: "38s", opacity: 0.5 }} />
+      <span className="cloud" style={{ top: "22%", right: "8%", width: 80, height: 20, animationDuration: "48s", animationDelay: "-16s", opacity: 0.35 }} />
+      <span className="floaty absolute" style={{ top: "12%", left: "10%", fontSize: 32, opacity: 0.45 }}>📖</span>
+      <span className="floaty absolute" style={{ bottom: "12%", right: "10%", fontSize: 28, opacity: 0.4, animationDelay: "-2s" }}>🕊️</span>
+    </div>
+  );
+}
+
 export default function VerseScramble() {
   const { stats, record } = useGameStats("verse-scramble");
   const [phase, setPhase] = useState<"menu" | "play" | "done">("menu");
@@ -25,6 +36,7 @@ export default function VerseScramble() {
   const [score, setScore] = useState(0);
   const [shake, setShake] = useState(false);
   const [solvedRefs, setSolvedRefs] = useState<string[]>([]);
+  const busyRef = useRef(false);
 
   const current = round[idx];
 
@@ -39,6 +51,7 @@ export default function VerseScramble() {
         return { reference: v.reference, words: v.words, shuffled: scrambled };
       })
     );
+    busyRef.current = false;
     setIdx(0);
     setPicked([]);
     setAttempts(0);
@@ -49,18 +62,21 @@ export default function VerseScramble() {
   };
 
   const tapWord = (i: number) => {
-    if (phase !== "play" || !current) return;
+    if (phase !== "play" || !current || busyRef.current) return;
+    if (picked.includes(i)) return;
     sound.play("pop");
     setPicked((p) => [...p, i]);
   };
 
   const untap = (slot: number) => {
+    if (busyRef.current) return;
     setPicked((p) => p.filter((_, j) => j !== slot));
     sound.play("click");
   };
 
   const check = () => {
-    if (!current || picked.length !== current.words.length) return;
+    if (!current || picked.length !== current.words.length || busyRef.current) return;
+    busyRef.current = true;
     const guess = picked.map((i) => current.shuffled[i]).join(" ");
     if (guess === current.words.join(" ")) {
       sound.play("correct");
@@ -78,6 +94,7 @@ export default function VerseScramble() {
           setIdx((n) => n + 1);
           setPicked([]);
           setAttempts(0);
+          busyRef.current = false;
         }, 1500);
       }
     } else {
@@ -87,80 +104,86 @@ export default function VerseScramble() {
       setTimeout(() => {
         setShake(false);
         setPicked([]);
+        busyRef.current = false;
       }, 700);
     }
   };
 
   if (phase === "menu") {
     return (
-      <div className="max-w-2xl mx-auto text-center">
-        <div className="text-6xl mb-4">📖</div>
-        <h2 className="font-display text-2xl md:text-3xl font-bold mb-2">Verse Scramble</h2>
-        <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-          The words of a well-known verse are out of order. Tap them in the right sequence
-          and carry the scripture with you. Best: {stats.best || "—"} · played {stats.plays}×
-        </p>
-        <button onClick={start} className="rounded-full bg-accent px-10 py-3 text-lg font-semibold text-accent-foreground hover:bg-accent/90 shadow-lg">
-          Unscramble 🧩
-        </button>
+      <div className="game-scene scene-verse text-white">
+        <VerseScene />
+        <div className="relative max-w-2xl mx-auto text-center py-12 px-4">
+          <div className="text-6xl mb-4 floaty inline-block drop-shadow-xl">📖</div>
+          <h2 className="font-display text-2xl md:text-3xl font-bold mb-2">Verse Scramble</h2>
+          <p className="text-white/80 mb-8 max-w-md mx-auto">
+            The words of a well-known verse are out of order. Tap them in the right sequence
+            and carry the scripture with you. Best: {stats.best || "—"} · played {stats.plays}×
+          </p>
+          <button onClick={start} className="btn-gold text-lg">
+            Unscramble 🧩
+          </button>
+        </div>
       </div>
     );
   }
 
   if (phase === "done") {
     return (
-      <div className="max-w-lg mx-auto text-center">
-        <div className="text-6xl mb-3">🧠</div>
-        <h3 className="font-display text-2xl font-bold mb-1">Scripture mastered!</h3>
-        <p className="text-muted-foreground mb-6">You unscrambled {solvedRefs.length} of {ROUNDS} verses · {score} points</p>
-        <div className="rounded-2xl border bg-card p-5 mb-6 text-left space-y-2">
-          {round
-            .filter((r) => solvedRefs.includes(r.reference))
-            .map((r) => (
-              <p key={r.reference} className="text-sm">
-                <strong className="text-accent">{r.reference}</strong> — {VERSE_DISPLAY[r.reference]}
-              </p>
-            ))}
+      <div className="max-w-lg mx-auto">
+        <div className="panel-scroll p-6 text-center">
+          <div className="text-6xl mb-3 bounce-in inline-block">🧠</div>
+          <h3 className="font-display text-2xl font-bold mb-1">Scripture mastered!</h3>
+          <p className="text-muted-foreground mb-6">You unscrambled {solvedRefs.length} of {ROUNDS} verses · {score} points</p>
+          <div className="rounded-2xl bg-white/70 border border-amber-900/10 p-5 mb-6 text-left space-y-2">
+            {round
+              .filter((r) => solvedRefs.includes(r.reference))
+              .map((r) => (
+                <p key={r.reference} className="text-sm">
+                  <strong className="text-amber-600">{r.reference}</strong> — {VERSE_DISPLAY[r.reference]}
+                </p>
+              ))}
+          </div>
+          <button onClick={start} className="btn-gold text-lg">
+            Play again
+          </button>
         </div>
-        <button onClick={start} className="rounded-full bg-accent px-10 py-3 text-lg font-semibold text-accent-foreground hover:bg-accent/90 shadow-lg">
-          Play again
-        </button>
       </div>
     );
   }
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="mb-4 flex items-center justify-between text-sm text-muted-foreground">
-        <span>Verse {idx + 1} of {ROUNDS}</span>
-        <span>Score {score}</span>
+      <div className="mb-4 flex items-center justify-between text-sm font-semibold">
+        <span className="rounded-full bg-navy text-white px-3 py-1">Verse {idx + 1} of {ROUNDS}</span>
+        <span className="rounded-full bg-secondary px-3 py-1 text-slate-700">Score {score}</span>
       </div>
 
-      <div className="rounded-2xl border bg-card p-6 shadow-sm mb-4 text-center">
+      <div className="panel-scroll p-6 mb-4 text-center">
         <span className="rounded-full bg-navy px-3 py-1 text-xs font-semibold text-white">{current.reference}</span>
-        <div className={`mt-4 min-h-[120px] flex flex-wrap items-center justify-center gap-2 ${shake ? "animate-[shake_0.4s_ease-in-out]" : ""}`}>
-          {picked.length === 0 && <span className="text-sm text-muted-foreground">Tap the words below in the right order…</span>}
-          {picked.map((chipIdx, slot) => (
+        <div className={"mt-4 min-h-[110px] flex flex-wrap items-center justify-center gap-2 mb-2 " + (shake ? "animate-[shake_0.4s_ease-in-out]" : "")}>
+          {current.words.map((_, slot) => (
             <button
               key={slot}
               onClick={() => untap(slot)}
-              className="rounded-lg border-2 border-accent bg-accent/10 px-3 py-2 font-semibold text-sm hover:bg-accent/20 transition-colors"
+              className="word-pill min-w-[4.5rem]"
             >
-              {current.shuffled[chipIdx]}
+              {picked[slot] !== undefined ? current.shuffled[picked[slot]] : "· · ·"}
             </button>
           ))}
         </div>
+        <p className="text-xs text-amber-800/70 mb-1">Tap a filled word above to put it back</p>
       </div>
 
-      <div className="flex flex-wrap justify-center gap-2 mb-5">
-        {current.shuffled.map((w, i) => (
+      <div className="panel-glass p-5 mb-4 flex flex-wrap justify-center gap-2">
+        {current.shuffled.map((word, i) => (
           <button
             key={i}
-            disabled={picked.includes(i)}
             onClick={() => tapWord(i)}
-            className="rounded-lg border bg-card px-3 py-2 font-semibold text-sm hover:border-accent hover:shadow-md disabled:opacity-25 transition-all"
+            disabled={picked.includes(i)}
+            className={"word-pill " + (picked.includes(i) ? "used" : "")}
           >
-            {w}
+            {word}
           </button>
         ))}
       </div>
@@ -169,11 +192,11 @@ export default function VerseScramble() {
         <button
           onClick={check}
           disabled={picked.length !== current.words.length}
-          className="rounded-full bg-accent px-10 py-3 font-semibold text-accent-foreground hover:bg-accent/90 disabled:opacity-30 shadow-lg"
+          className="btn-gold text-lg"
         >
           Check verse
         </button>
-        {attempts > 0 && <p className="mt-2 text-xs text-muted-foreground">Attempts: {attempts}</p>}
+        <p className="mt-2 text-xs text-muted-foreground">First try: 50 pts · second: 30 · after: 15</p>
       </div>
     </div>
   );
