@@ -41,6 +41,12 @@ CREATE POLICY "studio orders guests insert"
 ON public.studio_orders FOR INSERT TO anon, authenticated
 WITH CHECK (true);
 
+-- Admins (the store account the swarm signs in as) manage order lifecycle.
+CREATE POLICY "studio orders admin update"
+ON public.studio_orders FOR UPDATE TO authenticated
+USING (public.has_role(auth.uid(), 'admin'))
+WITH CHECK (public.has_role(auth.uid(), 'admin'));
+
 -- Default studio fees (ngwee) + delivery window. Tweak in Admin or SQL anytime.
 INSERT INTO public.site_settings (key, value) VALUES
   ('studio_standard_fee', '25000'),
