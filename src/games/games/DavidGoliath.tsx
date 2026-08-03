@@ -44,7 +44,7 @@ interface Flight {
 export default function DavidGoliath() {
   const { stats, record } = useGameStats("david-goliath");
   const [level, setLevel] = useState<Level | null>(null);
-  const [phase, setPhase] = useState<"menu" | "aim" | "fly" | "won" | "lost">("menu");
+  const [phase, setPhase] = useState<"menu" | "aim" | "fly" | "hit" | "won" | "lost">("menu");
   const [stonesLeft, setStonesLeft] = useState(5);
   const [taunt, setTaunt] = useState<string | null>(null);
   const [stone, setStone] = useState<Stone | null>(null);

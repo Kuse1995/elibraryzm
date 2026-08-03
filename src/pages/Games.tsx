@@ -97,7 +97,7 @@ export default function Games() {
         <div className="container relative py-16 md:py-24 text-center">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-4 py-1.5 text-sm mb-6 backdrop-blur">
             <Sparkles className="h-4 w-4 text-amber-300" />
-            <span>Brand new · free · no sign-up needed</span>
+            <span>FREE for every reader · unlocked with any purchase</span>
           </div>
           <h1 className="font-display text-4xl md:text-6xl font-bold mb-5 leading-tight drop-shadow-lg">
             Play. Learn.<br />
@@ -106,6 +106,7 @@ export default function Games() {
           <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto mb-8">
             Six beautifully-made Bible games for Zambian families — memory, trivia,
             scripture and adventure, all rooted in God's Word.
+            Buy any ebook (from K15) and every game unlocks for you, free forever.
           </p>
           <div className="flex flex-wrap justify-center gap-3 text-sm">
             <span className="rounded-full bg-white/10 border border-white/20 px-4 py-2 backdrop-blur">🎮 {GAMES.length} games</span>

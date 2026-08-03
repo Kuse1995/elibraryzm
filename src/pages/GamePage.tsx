@@ -2,6 +2,8 @@ import { Navigate, useParams } from "react-router-dom";
 import type { ComponentType } from "react";
 import { gameBySlug } from "@/games/registry";
 import GameShell from "@/games/GameShell";
+import GameUnlock from "@/components/GameUnlock";
+import { useGameAccess } from "@/hooks/useGameAccess";
 import ArkPairs from "@/games/games/ArkPairs";
 import FruitGarden from "@/games/games/FruitGarden";
 import DavidGoliath from "@/games/games/DavidGoliath";
@@ -66,8 +68,16 @@ const HELP: Record<string, React.ReactNode> = {
 export default function GamePage() {
   const { slug = "" } = useParams();
   const meta = gameBySlug(slug);
+  const { unlocked, loading } = useGameAccess();
   if (!meta) return <Navigate to="/games" replace />;
   const Game = GAME_COMPONENTS[meta.slug];
+
+  if (loading) {
+    return <div className="container py-16 text-center text-muted-foreground">Loading your games…</div>;
+  }
+  if (!unlocked) {
+    return <GameUnlock title={meta.title} emoji={meta.emoji} />;
+  }
   return (
     <GameShell title={meta.title} emoji={meta.emoji} instructions={HELP[meta.slug]}>
       <Game />

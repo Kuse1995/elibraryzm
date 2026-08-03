@@ -104,6 +104,20 @@ Deno.serve(async (req) => {
           else console.log('Granted access to ' + grants.length + ' ebook(s) for order ' + order.id);
         }
 
+        // Bonus: every completed order unlocks the games section forever
+        // (registered buyers by user_id, WhatsApp buyers by phone).
+        const gameGrant: any = {
+          user_id: order.user_id || null,
+          phone: order.user_id ? null : (order.whatsapp_phone || null),
+          order_id: order.id,
+          source: "book_purchase",
+        };
+        if (gameGrant.user_id || gameGrant.phone) {
+          const { error: gameError } = await supabase.from('game_access').insert(gameGrant);
+          if (gameError) console.error('Game access grant failed (non-blocking):', gameError.message || gameError);
+          else console.log('Granted game access for order ' + order.id);
+        }
+
         try {
           const automationApiKey = Deno.env.get("AUTOMATION_API_KEY");
           const { data: automationEnabled } = await supabase
