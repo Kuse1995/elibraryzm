@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -6,7 +6,7 @@ const STORAGE_KEY = "elibrary_games_unlocked";
 
 /**
  * Games are a free, forever perk for readers who bought a book.
- * - Signed-in buyers: grant is bound to their account (checked via edge fn).
+ * - Signed-in buyers: grant is bound to their account (checked via SQL RPC).
  * - WhatsApp/guest buyers: unlock once with the phone number they ordered with;
  *   the pass binds to their account if they are signed in, and a local flag
  *   keeps them unlocked on this device.
@@ -32,9 +32,7 @@ export function useGameAccess() {
           setLoading(false);
           return;
         }
-        const { data } = await supabase.functions.invoke("game-access-check", {
-          body: { mode: "me" },
-        });
+        const { data } = await supabase.rpc("game_access_check", { p_mode: "me" });
         if (!alive) return;
         if (data && data.granted) {
           localStorage.setItem(STORAGE_KEY, "1");
@@ -55,9 +53,7 @@ export function useGameAccess() {
 
   const claim = useCallback(
     async (phone: string): Promise<{ ok: boolean; reason?: string }> => {
-      const { data, error } = await supabase.functions.invoke("game-access-check", {
-        body: { phone },
-      });
+      const { data, error } = await supabase.rpc("game_access_check", { p_mode: "phone", p_phone: phone });
       if (!error && data && data.granted) {
         localStorage.setItem(STORAGE_KEY, "1");
         setUnlocked(true);
