@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import MarketingStudio from "@/components/MarketingStudio";
 import WhatsAppAdmin from "@/components/WhatsAppAdmin";
+import DesignRefsManager from "@/components/DesignRefsManager";
 
 type Ebook = Tables<"ebooks">;
 
@@ -697,6 +698,7 @@ const Admin = () => {
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="automation">Automation</TabsTrigger>
           <TabsTrigger value="marketing">Marketing</TabsTrigger>
+          <TabsTrigger value="refs">Design Refs</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
@@ -874,6 +876,9 @@ const Admin = () => {
         <AutomationTab ebooks={ebooks} isAdmin={isAdmin} />
         <TabsContent value="marketing" className="mt-6">
           {user && <MarketingStudio userId={user.id} isAdmin={isAdmin} />}
+        </TabsContent>
+        <TabsContent value="refs" className="mt-6">
+          <DesignRefsManager />
         </TabsContent>
         <TabsContent value="whatsapp" className="mt-6">
           <WhatsAppAdmin />
