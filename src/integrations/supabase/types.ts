@@ -62,6 +62,44 @@ export type Database = {
         }
         Relationships: []
       }
+      game_access: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          order_id: string | null
+          phone: string | null
+          source: string
+          user_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          phone?: string | null
+          source?: string
+          user_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          phone?: string | null
+          source?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_access_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_posts: {
         Row: {
           caption: string
@@ -385,6 +423,113 @@ export type Database = {
         }
         Relationships: []
       }
+      studio_orders: {
+        Row: {
+          amount_ngwee: number
+          created_at: string
+          customer_name: string | null
+          delivered_at: string | null
+          ebook_id: string | null
+          id: string
+          idea: string
+          lenco_reference: string | null
+          notes: string | null
+          payment_method: string
+          phone: string
+          reference: string
+          status: string
+          tier: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_ngwee?: number
+          created_at?: string
+          customer_name?: string | null
+          delivered_at?: string | null
+          ebook_id?: string | null
+          id?: string
+          idea?: string
+          lenco_reference?: string | null
+          notes?: string | null
+          payment_method?: string
+          phone: string
+          reference: string
+          status?: string
+          tier: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_ngwee?: number
+          created_at?: string
+          customer_name?: string | null
+          delivered_at?: string | null
+          ebook_id?: string | null
+          id?: string
+          idea?: string
+          lenco_reference?: string | null
+          notes?: string | null
+          payment_method?: string
+          phone?: string
+          reference?: string
+          status?: string
+          tier?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_orders_ebook_id_fkey"
+            columns: ["ebook_id"]
+            isOneToOne: false
+            referencedRelation: "ebooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_ebook_access: {
+        Row: {
+          created_at: string
+          ebook_id: string
+          guest_email: string | null
+          id: string
+          order_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          ebook_id: string
+          guest_email?: string | null
+          id?: string
+          order_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          ebook_id?: string
+          guest_email?: string | null
+          id?: string
+          order_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_ebook_access_ebook_id_fkey"
+            columns: ["ebook_id"]
+            isOneToOne: false
+            referencedRelation: "ebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_ebook_access_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -507,6 +652,10 @@ export type Database = {
           platform_fees: number
           total_sales: number
         }[]
+      }
+      game_access_check: {
+        Args: { p_mode?: string; p_phone?: string }
+        Returns: Json
       }
       has_active_author_subscription: {
         Args: { _user_id: string }
