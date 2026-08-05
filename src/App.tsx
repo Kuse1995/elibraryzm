@@ -21,6 +21,7 @@ import WhatsAppSubscribe from "./pages/WhatsAppSubscribe";
 import Games from "./pages/Games";
 import Studio from "./pages/Studio";
 import GamePage from "./pages/GamePage";
+import OAuthConsent from "./pages/OAuthConsent";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
                 <Route path="/games" element={<Games />} />
                 <Route path="/studio" element={<Studio />} />
                 <Route path="/games/:slug" element={<GamePage />} />
+                <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Layout>
