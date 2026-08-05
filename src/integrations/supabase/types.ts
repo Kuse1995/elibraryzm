@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      design_refs: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          source: string
+          storage_path: string
+          tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          source?: string
+          storage_path: string
+          tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          source?: string
+          storage_path?: string
+          tags?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ebooks: {
         Row: {
           approval_status: string
