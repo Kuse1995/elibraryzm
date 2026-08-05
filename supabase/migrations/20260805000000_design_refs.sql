@@ -30,7 +30,7 @@ WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
 -- Storage bucket for reference images (public read, admin write)
 INSERT INTO storage.buckets (id, name, public) VALUES ('design-refs', 'design-refs', true)
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET public = true;
 
 CREATE POLICY "Anyone can view design refs" ON storage.objects
 FOR SELECT USING (bucket_id = 'design-refs');
