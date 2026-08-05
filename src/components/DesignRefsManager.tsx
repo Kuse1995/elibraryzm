@@ -34,6 +34,7 @@ export default function DesignRefsManager() {
   const [tags, setTags] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [urls, setUrls] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -43,13 +44,26 @@ export default function DesignRefsManager() {
       .order("created_at", { ascending: false })
       .limit(100) as any;
     if (error) toast.error(error.message);
-    else setRefs((data || []) as DesignRef[]);
+    else {
+      const rows = (data || []) as DesignRef[];
+      setRefs(rows);
+      if (rows.length) {
+        const { data: signed } = await supabase.storage
+          .from(BUCKET)
+          .createSignedUrls(rows.map((r) => r.storage_path), 3600);
+        const map: Record<string, string> = {};
+        (signed || []).forEach((s, i) => {
+          if (s.signedUrl) map[rows[i].storage_path] = s.signedUrl;
+        });
+        setUrls(map);
+      }
+    }
     setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  const url = (r: DesignRef) => supabase.storage.from(BUCKET).getPublicUrl(r.storage_path).data.publicUrl;
+  const url = (r: DesignRef) => urls[r.storage_path] || "";
 
   const upload = async () => {
     if (!file) return toast.error("Choose an image first");
@@ -83,7 +97,7 @@ export default function DesignRefsManager() {
   };
 
   const toggle = async (r: DesignRef) => {
-    const { error } = await supabase.from("design_refs").update({ active: !r.active }) as any;
+    const { error } = await supabase.from("design_refs").update({ active: !r.active }).eq("id", r.id) as any;
     if (!error) load();
   };
 
