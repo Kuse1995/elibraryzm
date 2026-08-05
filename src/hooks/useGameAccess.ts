@@ -32,9 +32,10 @@ export function useGameAccess() {
           setLoading(false);
           return;
         }
-        const { data } = await supabase.rpc("game_access_check", { p_mode: "me" });
+        const { data: raw } = await supabase.rpc("game_access_check", { p_mode: "me" });
+        const data = raw as { granted?: boolean; reason?: string } | null;
         if (!alive) return;
-        if (data && data.granted) {
+        if (data?.granted) {
           localStorage.setItem(STORAGE_KEY, "1");
           setUnlocked(true);
         } else {
@@ -53,8 +54,9 @@ export function useGameAccess() {
 
   const claim = useCallback(
     async (phone: string): Promise<{ ok: boolean; reason?: string }> => {
-      const { data, error } = await supabase.rpc("game_access_check", { p_mode: "phone", p_phone: phone });
-      if (!error && data && data.granted) {
+      const { data: raw, error } = await supabase.rpc("game_access_check", { p_mode: "phone", p_phone: phone });
+      const data = raw as { granted?: boolean; reason?: string } | null;
+      if (!error && data?.granted) {
         localStorage.setItem(STORAGE_KEY, "1");
         setUnlocked(true);
         return { ok: true };
