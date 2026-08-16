@@ -25,8 +25,8 @@ const LEVELS: Level[] = [
 const TAUNTS = [
   "Is that all you have?",
   "Come here, little boy!",
-  "I will feed you to the birds!",
-  "My sword is bigger than you!",
+  "The birds will eat you!",
+  "My sword is bigger!",
 ];
 
 interface Stone {
@@ -296,14 +296,18 @@ export default function DavidGoliath() {
           </g>
 
           {/* Taunt bubble */}
-          {taunt && (
-            <g>
-              <rect x={goliathX + 60} y="60" width="210" height="52" rx="14" fill="white" stroke="#d6d3d1" strokeWidth="2" />
-              <circle cx={goliathX + 84} cy="116" r="7" fill="white" stroke="#d6d3d1" strokeWidth="2" />
-              <circle cx={goliathX + 70} cy="128" r="4" fill="white" stroke="#d6d3d1" strokeWidth="2" />
-              <text x={goliathX + 72} y="90" fontSize="17" fontWeight="600" fill="#44403c">{taunt}</text>
-            </g>
-          )}
+          {taunt && (() => {
+            const flip = goliathX + 280 > W - 6;
+            const tx = flip ? goliathX - 280 : goliathX + 60;
+            return (
+              <g>
+                <rect x={tx} y="60" width="220" height="52" rx="14" fill="white" stroke="#d6d3d1" strokeWidth="2" />
+                <circle cx={tx + (flip ? 196 : 24)} cy="116" r="7" fill="white" stroke="#d6d3d1" strokeWidth="2" />
+                <circle cx={tx + (flip ? 210 : 10)} cy="128" r="4" fill="white" stroke="#d6d3d1" strokeWidth="2" />
+                <text x={tx + 14} y="90" fontSize="16" fontWeight="600" fill="#44403c">{taunt}</text>
+              </g>
+            );
+          })()}
         </svg>
 
         <div className="scene-deco" style={{ zIndex: 5 }}>

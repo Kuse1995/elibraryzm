@@ -179,8 +179,11 @@ export default function ArkAdventure() {
   const levelName = ARK_LEVELS[level - 1]?.name ?? "The Call";
 
   return (
-    <div className="relative mx-auto w-full max-w-[430px] overflow-hidden rounded-2xl bg-[#10233d]">
-      <div ref={parentRef} className="relative w-full" style={{ height: "min(74vh, 720px)" }} />
+    <div
+      className="relative mx-auto w-full max-w-[400px] overflow-hidden rounded-2xl bg-[#10233d]"
+      style={{ aspectRatio: "480 / 800" }}
+    >
+      <div ref={parentRef} className="absolute inset-0" />
 
       {screen === "play" && (
         <button
