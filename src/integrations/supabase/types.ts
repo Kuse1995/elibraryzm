@@ -375,6 +375,8 @@ export type Database = {
           display_name: string | null
           email: string | null
           id: string
+          reader_expires_at: string | null
+          reader_last_sub_ref: string | null
           subscription_expires_at: string | null
           updated_at: string
           user_id: string
@@ -384,6 +386,8 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id?: string
+          reader_expires_at?: string | null
+          reader_last_sub_ref?: string | null
           subscription_expires_at?: string | null
           updated_at?: string
           user_id: string
@@ -393,6 +397,8 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id?: string
+          reader_expires_at?: string | null
+          reader_last_sub_ref?: string | null
           subscription_expires_at?: string | null
           updated_at?: string
           user_id?: string

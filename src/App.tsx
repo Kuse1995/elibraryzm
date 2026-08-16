@@ -18,6 +18,7 @@ import Downloads from "./pages/Downloads";
 import AuthorDashboard from "./pages/AuthorDashboard";
 import UpgradeToAuthor from "./pages/UpgradeToAuthor";
 import WhatsAppSubscribe from "./pages/WhatsAppSubscribe";
+import AllAccess from "./pages/AllAccess";
 import Games from "./pages/Games";
 import Studio from "./pages/Studio";
 import GamePage from "./pages/GamePage";
@@ -48,6 +49,7 @@ const App = () => (
                 <Route path="/payment-verify" element={<PaymentVerify />} />
                 <Route path="/downloads" element={<Downloads />} />
                 <Route path="/whatsapp" element={<WhatsAppSubscribe />} />
+                <Route path="/all-access" element={<AllAccess />} />
                 <Route path="/games" element={<Games />} />
                 <Route path="/studio" element={<Studio />} />
                 <Route path="/games/:slug" element={<GamePage />} />

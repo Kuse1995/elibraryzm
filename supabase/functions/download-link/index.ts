@@ -83,6 +83,19 @@ Deno.serve(async (req) => {
     let allowed = ebook.price === 0;
 
     if (!allowed) {
+      // All-Access reader subscription covers every ebook.
+      const { data: readerProfile } = await supabase
+        .from("profiles")
+        .select("reader_expires_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const readerExpires = readerProfile?.reader_expires_at
+        ? new Date(readerProfile.reader_expires_at)
+        : null;
+      allowed = !!readerExpires && readerExpires > new Date();
+    }
+
+    if (!allowed) {
       const { data: purchase, error: purchaseError } = await supabase
         .from("order_items")
         .select("id, order:orders!inner(user_id, status)")

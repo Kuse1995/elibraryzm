@@ -1,13 +1,15 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Download } from "lucide-react";
+import { BookOpen, Download, Sparkles, CheckCircle2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
+import { useReaderSubscription } from "@/hooks/useReaderSubscription";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 const MyLibrary = () => {
   const { user } = useAuth();
+  const { isActive, expiresAt, daysLeft } = useReaderSubscription();
 
   const { data: purchases = [], isLoading } = useQuery({
     queryKey: ["my-purchases", user?.id],
@@ -52,6 +54,33 @@ const MyLibrary = () => {
     <div className="container py-10">
       <h1 className="font-display text-3xl font-bold mb-2">My Library</h1>
       <p className="text-muted-foreground mb-8">Your purchased ebooks — download anytime.</p>
+
+      <Card className="mb-8 border-accent/30">
+        <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-5">
+          <div className="flex items-start gap-3">
+            {isActive ? (
+              <CheckCircle2 className="h-8 w-8 text-green-600 shrink-0 mt-0.5" />
+            ) : (
+              <Sparkles className="h-8 w-8 text-accent shrink-0 mt-0.5" />
+            )}
+            <div>
+              <p className="font-semibold">
+                {isActive ? "All-Access Active" : "All-Access Library"}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {isActive
+                  ? `Everything is unlocked — ${daysLeft} day${daysLeft === 1 ? "" : "s"} left (until ${expiresAt?.toLocaleDateString()}). Renewing adds time on top.`
+                  : "Unlock every ebook and game for K10/month or K100/year."}
+              </p>
+            </div>
+          </div>
+          <Link to="/all-access" className="shrink-0">
+            <Button variant={isActive ? "outline" : "default"} className={isActive ? "" : "bg-accent text-accent-foreground hover:bg-accent/90"}>
+              {isActive ? "Add More Time" : "Get All-Access"}
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
 
       {isLoading ? (
         <div className="text-center py-16 text-muted-foreground">Loading your library...</div>

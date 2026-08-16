@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useReaderSubscription } from "@/hooks/useReaderSubscription";
 
 const normalizeZambianMobileMoneyNumber = (raw: string, method: "mtn" | "airtel") => {
   const digits = raw.replace(/\D/g, "");
@@ -31,6 +32,7 @@ const EbookDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isActive: readerActive } = useReaderSubscription();
 
   const [phone, setPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"mtn" | "airtel">("mtn");
@@ -183,7 +185,7 @@ const EbookDetail = () => {
             <p className="text-lg text-muted-foreground">by {ebook.author}</p>
           </div>
           <div className="text-3xl font-bold text-accent">
-            {ebook.price === 0 ? "Free" : `K${(ebook.price / 100).toLocaleString()}`}
+            {ebook.price === 0 ? "Free" : readerActive ? "Included" : `K${(ebook.price / 100).toLocaleString()}`}
           </div>
           <p className="text-muted-foreground leading-relaxed">{ebook.description}</p>
 
@@ -230,9 +232,11 @@ const EbookDetail = () => {
           )}
 
           {/* Buy / Download Form */}
-          {ebook.price === 0 ? (
+          {ebook.price === 0 || readerActive ? (
             <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
-              <h3 className="font-semibold">Download Free</h3>
+              <h3 className="font-semibold">
+                {readerActive && ebook.price !== 0 ? "Included with All-Access" : "Download Free"}
+              </h3>
               {!user ? (
                 <div className="text-center space-y-4 py-4">
                   <p className="text-muted-foreground">
@@ -287,10 +291,10 @@ const EbookDetail = () => {
                       Downloading...
                     </>
                   ) : (
-                    <>
-                      <Download className="h-5 w-5" />
-                      Download Free
-                    </>
+                  <>
+                    <Download className="h-5 w-5" />
+                    {readerActive && ebook.price !== 0 ? "Download Now" : "Download Free"}
+                  </>
                   )}
                 </Button>
               )}

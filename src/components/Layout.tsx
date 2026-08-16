@@ -16,6 +16,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const navLinks = [
     { to: "/", label: "Home" },
     { to: "/browse", label: "Browse" },
+    { to: "/all-access", label: "All-Access" },
     { to: "/games", label: "Games" },
     { to: "/studio", label: "Book Studio" },
     ...(user ? [{ to: "/my-library", label: "My Library" }] : []),
