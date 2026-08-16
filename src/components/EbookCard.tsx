@@ -52,6 +52,9 @@ const EbookCard = ({ ebook }: { ebook: Ebook }) => {
               </Button>
             )}
           </div>
+          {!isFree && (
+            <p className="text-xs text-muted-foreground">Included in All-Access · K10/month</p>
+          )}
         </CardContent>
       </Card>
     </Link>

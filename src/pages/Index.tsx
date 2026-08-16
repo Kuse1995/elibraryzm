@@ -46,8 +46,13 @@ const Index = () => {
             fiction, and more — to inspire your spiritual journey.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/browse">
+            <Link to="/all-access">
               <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2 text-base px-8">
+                Get All-Access — K10/month or K100/year
+              </Button>
+            </Link>
+            <Link to="/browse">
+              <Button size="lg" className="border border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 text-base px-8">
                 Browse Ebooks <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
@@ -55,13 +60,7 @@ const Index = () => {
               <div className="inline-flex items-center gap-2 border border-primary-foreground/30 rounded-lg px-8 py-2.5 text-primary-foreground text-base font-medium">
                 Welcome, {displayName} 👋
               </div>
-            ) : (
-              <Link to="/auth">
-                <Button size="lg" className="border border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 text-base px-8">
-                  Sign Up Free
-                </Button>
-              </Link>
-            )}
+            ) : null}
           </div>
         </div>
       </section>
@@ -126,7 +125,7 @@ const Index = () => {
         <div className="max-w-2xl mx-auto">
           <h2 className="font-display text-2xl md:text-3xl font-bold mb-4">Start Your Spiritual Reading Journey</h2>
           <p className="text-muted-foreground mb-6">
-            {user ? "Explore our collection and continue your spiritual reading journey." : "Create a free account to track your purchases, build your library, and get personalized recommendations."}
+            {user ? "Explore our collection and continue your spiritual reading journey." : "Create an account to track your purchases, build your library, and get personalized recommendations."}
           </p>
           {user ? (
             <Link to="/browse"><Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 px-8">Browse Ebooks</Button></Link>

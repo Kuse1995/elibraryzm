@@ -129,10 +129,10 @@ const AllAccess = () => {
         <Sparkles className="h-16 w-16 text-muted-foreground/40 mx-auto mb-4" />
         <h1 className="font-display text-2xl font-bold mb-2">All-Access Library</h1>
         <p className="text-muted-foreground mb-6">
-          Create a free account, then unlock everything for K{monthlyK} a month.
+          Create an account, then unlock everything for K{monthlyK} a month or K{yearlyK} a year.
         </p>
         <Button onClick={() => navigate("/auth")} className="bg-accent text-accent-foreground hover:bg-accent/90">
-          Create Free Account
+          Create Account
         </Button>
       </div>
     );

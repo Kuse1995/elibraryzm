@@ -172,6 +172,14 @@ const Cart = () => {
             <span className="text-accent">K{(total / 100).toLocaleString()}</span>
           </div>
 
+          {total >= 2000 && (
+            <Link to="/all-access" className="block">
+              <p className="text-sm text-muted-foreground hover:text-accent">
+                Cheaper with All-Access? Every book + all games for K10/month (K100/year)
+              </p>
+            </Link>
+          )}
+
           {!user && (
             <div>
               <label className="text-sm font-medium mb-1.5 block">Email for delivery</label>
