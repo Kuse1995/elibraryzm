@@ -11,9 +11,11 @@ import BibleTrivia from "@/games/games/BibleTrivia";
 import WhoAmI from "@/games/games/WhoAmI";
 import VerseScramble from "@/games/games/VerseScramble";
 import ArkAdventure from "@/games/premium/ArkAdventure";
+import JonahAdventure from "@/games/premium/JonahAdventure";
 
 const GAME_COMPONENTS: Record<string, ComponentType> = {
   "ark-adventure": ArkAdventure,
+  "jonah-adventure": JonahAdventure,
   "ark-pairs": ArkPairs,
   "fruit-garden": FruitGarden,
   "david-goliath": DavidGoliath,
@@ -28,6 +30,13 @@ const HELP: Record<string, React.ReactNode> = {
       <li>Tap to jump - and tap again in the air for a double jump.</li>
       <li>Collect every animal Noah needs for the ark.</li>
       <li>Dodge the rocks and logs. Three hearts, three levels - Level 1 is free for everyone.</li>
+    </ul>
+  ),
+  "jonah-adventure": (
+    <ul className="list-disc pl-5">
+      <li>Hold your finger to swim up, release to dive.</li>
+      <li>Collect every fish Jonah saves from the sea.</li>
+      <li>Dodge the rocks, seaweed and jellyfish. Three hearts, three levels - Level 1 is free for everyone.</li>
     </ul>
   ),
   "ark-pairs": (

@@ -28,6 +28,18 @@ export const GAMES: GameMeta[] = [
     premium: true,
   },
   {
+    slug: "jonah-adventure",
+    title: "Jonah & the Whale",
+    tagline: "Swim deep, escape the belly",
+    description: "Our premium underwater adventure: hold to swim, dodge the storm, escape the whale's belly and reach Nineveh. Level 1 is free for everyone - the full journey unlocks with All-Access.",
+    audience: "Kids",
+    difficulty: 2,
+    emoji: "🐋",
+    gradient: "from-blue-400 via-indigo-500 to-purple-700",
+    accent: "#60A5FA",
+    premium: true,
+  },
+  {
     slug: "ark-pairs",
     title: "Noah's Ark Pairs",
     tagline: "Memory match on the ark",
