@@ -27,13 +27,18 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="min-h-screen flex flex-col">
       {location.pathname !== "/all-access" && (
-        <Link to="/all-access" className="block bg-accent text-accent-foreground">
-          <div className="container flex items-center justify-center gap-2 py-2 text-center text-xs sm:text-sm font-medium hover:underline">
-            <span aria-hidden="true">🎁</span>
-            <span>All-Access: every book + all 6 Bible games for K10 a month or K100 a year</span>
-            <span aria-hidden="true">→</span>
+        <div className="bg-accent text-accent-foreground">
+          <div className="container flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 py-2.5 text-center">
+            <p className="text-sm sm:text-base font-semibold">
+              <span aria-hidden="true">🎁</span> Subscribe to All-Access — every book + all 6 Bible games
+            </p>
+            <Link to="/all-access">
+              <Button size="lg" className="bg-white text-primary font-bold shadow-md hover:bg-white/90 h-auto py-2">
+                K10 a month or K100 a year →
+              </Button>
+            </Link>
           </div>
-        </Link>
+        </div>
       )}
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
