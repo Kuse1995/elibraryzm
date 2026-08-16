@@ -13,11 +13,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useReaderSubscription } from "@/hooks/useReaderSubscription";
-import { ARK_LEVELS, ArkAdventureScene } from "./ArkAdventureScene";
+import { ARK_ANIMALS, ARK_LEVELS, ArkAdventureScene, readArkGallery } from "./ArkAdventureScene";
 
 type Screen = "boot" | "play" | "select" | "levelComplete" | "gate" | "gameOver";
 
 const PROGRESS_KEY = "ark-adventure-progress";
+const BEST_KEY = "ark-adventure-best";
+
+interface BestEntry {
+  stars: number;
+  score: number;
+}
 
 function readProgress(): number {
   try {
@@ -25,6 +31,19 @@ function readProgress(): number {
   } catch {
     return 1;
   }
+}
+
+function readBest(): Record<string, BestEntry> {
+  try {
+    const raw = localStorage.getItem(BEST_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, BestEntry>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function galleryTotal(gallery: Record<string, number>): number {
+  return Object.values(gallery).reduce((sum, n) => sum + (Number(n) || 0), 0);
 }
 
 export default function ArkAdventure() {
@@ -35,14 +54,21 @@ export default function ArkAdventure() {
   const [screen, setScreen] = useState<Screen>("boot");
   const [level, setLevel] = useState(1);
   const [animals, setAnimals] = useState(0);
+  const [stars, setStars] = useState(0);
+  const [score, setScore] = useState(0);
+  const [newBest, setNewBest] = useState(false);
   const [muted, setMuted] = useState(false);
   const [progress, setProgress] = useState(readProgress);
+  const [best, setBest] = useState<Record<string, BestEntry>>(readBest);
+  const [gallery, setGallery] = useState<Record<string, number>>(readArkGallery);
   const [gameReady, setGameReady] = useState(false);
 
   const { user, loading: authLoading } = useAuth();
   const { isActive, isLoading: subLoading } = useReaderSubscription();
   const isActiveRef = useRef(isActive);
   isActiveRef.current = isActive;
+  const bestRef = useRef(best);
+  bestRef.current = best;
 
   useEffect(() => {
     if (!parentRef.current || sceneRef.current) return;
@@ -62,9 +88,13 @@ export default function ArkAdventure() {
             }
             setGameReady(true);
           },
-          onLevelComplete: (lvl, saved) => {
+          onLevelComplete: (lvl, saved, earnedStars, earnedScore) => {
             setLevel(lvl);
             setAnimals(saved);
+            setStars(earnedStars);
+            setScore(earnedScore);
+            const prevEntry = bestRef.current[String(lvl)] ?? { stars: 0, score: 0 };
+            setNewBest(earnedStars > prevEntry.stars || earnedScore > prevEntry.score);
             setProgress((p) => {
               const next = Math.max(p, lvl);
               try {
@@ -74,6 +104,20 @@ export default function ArkAdventure() {
               }
               return next;
             });
+            setBest((prev) => {
+              const old = prev[String(lvl)] ?? { stars: 0, score: 0 };
+              const next = {
+                ...prev,
+                [String(lvl)]: { stars: Math.max(old.stars, earnedStars), score: Math.max(old.score, earnedScore) },
+              };
+              try {
+                localStorage.setItem(BEST_KEY, JSON.stringify(next));
+              } catch {
+                /* storage unavailable */
+              }
+              return next;
+            });
+            setGallery(readArkGallery());
             sceneRef.current?.scene.pause();
             setScreen(isActiveRef.current ? "levelComplete" : "gate");
           },
@@ -121,6 +165,7 @@ export default function ArkAdventure() {
     if (!s) return;
     setLevel(lvl);
     setScreen("play");
+    setGallery(readArkGallery());
     if (s.scene.isPaused()) s.scene.resume();
     s.startLevel(lvl);
   };
@@ -162,6 +207,7 @@ export default function ArkAdventure() {
             {ARK_LEVELS.map((lvlDef, i) => {
               const lvl = i + 1;
               const cleared = progress >= lvl;
+              const entry = best[String(lvl)];
               return (
                 <button
                   key={lvl}
@@ -172,14 +218,42 @@ export default function ArkAdventure() {
                     <span className="block font-semibold">Level {lvl} — {lvlDef.name}</span>
                     <span className="block text-xs text-white/70">{lvlDef.subtitle}</span>
                   </span>
-                  {cleared ? (
-                    <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-300" />
-                  ) : (
-                    <Play className="h-5 w-5 shrink-0 text-amber-300" />
-                  )}
+                  <span className="flex flex-col items-end gap-0.5">
+                    {entry && entry.stars > 0 ? (
+                      <>
+                        <span className="text-sm tracking-tight">{"⭐".repeat(entry.stars)}</span>
+                        {entry.score > 0 && <span className="text-[11px] text-white/70">Best {entry.score}</span>}
+                      </>
+                    ) : cleared ? (
+                      <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-300" />
+                    ) : (
+                      <Play className="h-5 w-5 shrink-0 text-amber-300" />
+                    )}
+                  </span>
                 </button>
               );
             })}
+          </div>
+
+          <div className="w-full max-w-xs rounded-xl bg-white/10 p-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm">Ark Gallery</h3>
+              <span className="text-xs text-white/70">{galleryTotal(gallery)} saved</span>
+            </div>
+            <div className="mt-2 grid grid-cols-4 gap-2">
+              {ARK_ANIMALS.map((a) => {
+                const count = Number(gallery[a]) || 0;
+                return (
+                  <div key={a} className="flex flex-col items-center rounded-lg bg-white/5 py-1.5">
+                    <span className={"text-2xl " + (count > 0 ? "" : "opacity-30 grayscale")}>{a}</span>
+                    <span className="text-[10px] text-white/70">{count > 0 ? `x${count}` : "—"}</span>
+                  </div>
+                );
+              })}
+            </div>
+            {galleryTotal(gallery) === 0 && (
+              <p className="mt-2 text-[11px] text-white/60">Every animal you save in a level joins the ark here.</p>
+            )}
           </div>
         </div>
       )}
@@ -225,6 +299,22 @@ export default function ArkAdventure() {
               ? "Noah's family is safe and the rainbow shines — God keeps His promises."
               : `You saved ${animals} animals in ${levelName}. The journey continues!`}
           </p>
+          <div className="text-3xl tracking-widest">
+            {[0, 1, 2].map((i) => (
+              <span key={i} className={i < stars ? "" : "opacity-30 grayscale"}>
+                ⭐
+              </span>
+            ))}
+          </div>
+          <div
+            className={
+              "rounded-full px-4 py-1 text-sm font-bold " +
+              (newBest ? "bg-amber-400 text-amber-950" : "bg-white/10")
+            }
+          >
+            Score {score}
+            {newBest && " · New best!"}
+          </div>
           <div className="flex w-full max-w-xs flex-col gap-2.5">
             {level < 3 ? (
               <Button size="lg" onClick={() => begin(level + 1)} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
@@ -249,6 +339,7 @@ export default function ArkAdventure() {
           <p className="text-white/85">
             You saved {animals} animal{animals === 1 ? "" : "s"} on {levelName}. Try again — God is with you.
           </p>
+          <div className="rounded-full bg-white/10 px-4 py-1 text-sm font-bold">Score {score}</div>
           <div className="flex w-full max-w-xs flex-col gap-2.5">
             <Button size="lg" onClick={() => begin(level)} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
               <RotateCcw className="h-4 w-4" /> Try again
@@ -269,7 +360,7 @@ export default function ArkAdventure() {
 
       {screen === "play" && (
         <p className="px-4 py-2 text-center text-xs text-muted-foreground bg-card">
-          Tap to jump · tap again in the air for a double jump · collect the animals, dodge the rocks
+          Tap to jump · tap again in the air for a double jump · collect animals, dodge rocks · grab 🛡️ 🧲 ⏳ power-ups
         </p>
       )}
     </div>

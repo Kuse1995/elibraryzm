@@ -30,8 +30,8 @@ export const GAMES: GameMeta[] = [
   {
     slug: "jonah-adventure",
     title: "Jonah & the Whale",
-    tagline: "Swim deep, escape the belly",
-    description: "Our premium underwater adventure: hold to swim, dodge the storm, escape the whale's belly and reach Nineveh. Level 1 is free for everyone - the full journey unlocks with All-Access.",
+    tagline: "Drag, aim, release",
+    description: "Our premium physics puzzle: fling Jonah across 15 hand-crafted stages - bounce pads, rolling barrels, water and starfish. The Storm is free - The Belly and Nineveh unlock with All-Access.",
     audience: "Kids",
     difficulty: 2,
     emoji: "🐋",

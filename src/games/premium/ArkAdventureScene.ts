@@ -64,12 +64,29 @@ export const ARK_LEVELS: ArkLevelDef[] = [
 
 export interface ArkAdventureCallbacks {
   onReady: () => void;
-  onLevelComplete: (levelIndex: number, animalsSaved: number) => void;
+  onLevelComplete: (levelIndex: number, animalsSaved: number, stars: number, score: number) => void;
   onGameOver: (levelIndex: number, animalsSaved: number) => void;
 }
 
-const ANIMALS = ["🦁", "🐘", "🦒", "🐒", "🕊️", "🐐", "🦓", "🐰"];
+export const ARK_ANIMALS = ["🦁", "🐘", "🦒", "🐒", "🕊️", "🐐", "🦓", "🐰"];
+export const ARK_GALLERY_KEY = "ark-gallery";
+
+const ANIMALS = ARK_ANIMALS;
 const HAZARDS = ["🪨", "🪵", "🌵"];
+const POWERUPS = [
+  { emoji: "🛡️", kind: "shield" },
+  { emoji: "🧲", kind: "magnet" },
+  { emoji: "⏳", kind: "slow" },
+];
+
+export function readArkGallery(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(ARK_GALLERY_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, number>) : {};
+  } catch {
+    return {};
+  }
+}
 const RAINBOW = [0xff6b6b, 0xffb84d, 0xffe14d, 0x7bd97b, 0x6db8ff, 0x9d7bff];
 
 const W = 480;
@@ -92,6 +109,18 @@ export class ArkAdventureScene extends Phaser.Scene {
   private animalsCollected = 0;
   private heartsText!: Phaser.GameObjects.Text;
   private progressText!: Phaser.GameObjects.Text;
+  private scoreText!: Phaser.GameObjects.Text;
+  private comboText!: Phaser.GameObjects.Text;
+  private powerText!: Phaser.GameObjects.Text;
+  private lastPowerLine = "";
+
+  private score = 0;
+  private combo = 0;
+  private comboTimerUntil = 0;
+  private shieldActive = false;
+  private magnetUntil = 0;
+  private slowUntil = 0;
+  private shieldAura?: Phaser.GameObjects.Ellipse;
 
   private spawnEvent?: Phaser.Time.TimerEvent;
   private lightningEvent?: Phaser.Time.TimerEvent;
@@ -126,6 +155,14 @@ export class ArkAdventureScene extends Phaser.Scene {
     this.def = ARK_LEVELS[this.levelIndex - 1] ?? ARK_LEVELS[0];
     this.hearts = 3;
     this.animalsCollected = 0;
+    this.score = 0;
+    this.combo = 0;
+    this.comboTimerUntil = 0;
+    this.shieldActive = false;
+    this.magnetUntil = 0;
+    this.slowUntil = 0;
+    this.lastPowerLine = "";
+    this.removeShieldAura();
     this.invulnUntil = 0;
     this.airJumps = 0;
     this.dead = false;
@@ -180,7 +217,8 @@ export class ArkAdventureScene extends Phaser.Scene {
       ? 0
       : Math.min(this.def.baseSpeed * 1.25, this.def.baseSpeed + this.elapsed * 3.5);
     this.worldSpeed = Phaser.Math.Linear(this.worldSpeed, this.targetSpeed, 0.055);
-    const px = (this.worldSpeed * dt) / 1000;
+    const slowFactor = this.time.now < this.slowUntil ? 0.55 : 1;
+    const px = (this.worldSpeed * slowFactor * dt) / 1000;
 
     this.stones.forEach((s) => {
       s.y += px;
@@ -199,11 +237,27 @@ export class ArkAdventureScene extends Phaser.Scene {
       }
     });
 
+    const magnetOn = this.time.now < this.magnetUntil;
     (this.items.getChildren() as Phaser.GameObjects.Text[]).forEach((t) => {
       const b = t.body as Phaser.Physics.Arcade.Body;
       b.setVelocityY(this.worldSpeed);
+      if (magnetOn && t.getData("kind") === "animal" && Math.abs(t.x - this.noah.x) < 300) {
+        t.x = Phaser.Math.Linear(t.x, this.noah.x, 0.08);
+      }
       if (t.y > H + 80) t.destroy();
     });
+
+    if (this.shieldAura) {
+      this.shieldAura.x = this.noah.x;
+      this.shieldAura.y = this.noah.y - 4;
+      this.shieldAura.setAlpha(0.3 + Math.sin(this.time.now / 160) * 0.16);
+    }
+
+    if (this.combo > 0 && this.time.now > this.comboTimerUntil) {
+      this.combo = 0;
+      this.updateHud();
+    }
+    this.updatePowerHud();
 
     this.shadow.x = this.noah.x;
     const airHeight = GROUND_TOP - 37 - this.noah.y;
@@ -300,13 +354,52 @@ export class ArkAdventureScene extends Phaser.Scene {
       })
       .setOrigin(0.5, 0)
       .setDepth(10);
+    this.scoreText = this.add
+      .text(W / 2, 42, "0", {
+        fontSize: "38px",
+        color: "#ffffff",
+        stroke: "#000000aa",
+        strokeThickness: 6,
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5, 0)
+      .setDepth(10);
+    this.comboText = this.add
+      .text(W / 2, 88, "", { fontSize: "22px", color: "#ffd76a", stroke: "#000000aa", strokeThickness: 5, fontStyle: "bold" })
+      .setOrigin(0.5, 0)
+      .setDepth(10);
+    this.powerText = this.add
+      .text(W / 2, 116, "", { fontSize: "26px" })
+      .setOrigin(0.5, 0)
+      .setDepth(10)
+      .setVisible(false);
     this.updateHud();
   }
 
   private updateHud() {
     const left = Math.max(0, this.hearts);
-    this.heartsText.setText("❤️".repeat(left) + "🖤".repeat(3 - left));
-    this.progressText.setText(`🐾 ${this.animalsCollected}/${this.def.animalGoal}`);
+    const heartsLine = "❤️".repeat(left) + "🖤".repeat(3 - left);
+    if (this.heartsText.text !== heartsLine) this.heartsText.setText(heartsLine);
+    const progressLine = `🐾 ${this.animalsCollected}/${this.def.animalGoal}`;
+    if (this.progressText.text !== progressLine) this.progressText.setText(progressLine);
+    const scoreLine = String(this.score);
+    if (this.scoreText.text !== scoreLine) this.scoreText.setText(scoreLine);
+    const comboLine = this.combo > 1 ? `x${this.combo} COMBO!` : "";
+    if (this.comboText.text !== comboLine) this.comboText.setText(comboLine);
+  }
+
+  private updatePowerHud() {
+    const now = this.time.now;
+    const parts: string[] = [];
+    if (this.shieldActive) parts.push("🛡️");
+    if (now < this.magnetUntil) parts.push("🧲");
+    if (now < this.slowUntil) parts.push("⏳");
+    const line = parts.join(" ");
+    if (line !== this.lastPowerLine) {
+      this.lastPowerLine = line;
+      this.powerText.setText(line);
+      this.powerText.setVisible(line !== "");
+    }
   }
 
   private buildEffects() {
@@ -379,20 +472,39 @@ export class ArkAdventureScene extends Phaser.Scene {
 
   private spawnItem() {
     if (this.dead || this.finished) return;
-    const wantAnimal = this.animalsCollected < this.def.animalGoal && Math.random() < 0.6;
-    const emoji = wantAnimal
-      ? ANIMALS[Phaser.Math.Between(0, ANIMALS.length - 1)]
-      : HAZARDS[Phaser.Math.Between(0, HAZARDS.length - 1)];
+    const roll = Math.random();
+    const noActivePower = !this.shieldActive && this.time.now >= this.magnetUntil && this.time.now >= this.slowUntil;
+    const wantPower = noActivePower && roll < 0.14;
+    const wantAnimal = !wantPower && this.animalsCollected < this.def.animalGoal && roll < 0.62;
+    let emoji: string;
+    let kind: string;
+    let powerKind = "";
+    if (wantPower) {
+      const p = POWERUPS[Phaser.Math.Between(0, POWERUPS.length - 1)];
+      emoji = p.emoji;
+      kind = "power";
+      powerKind = p.kind;
+    } else {
+      kind = wantAnimal ? "animal" : "hazard";
+      emoji = wantAnimal
+        ? ANIMALS[Phaser.Math.Between(0, ANIMALS.length - 1)]
+        : HAZARDS[Phaser.Math.Between(0, HAZARDS.length - 1)];
+    }
     const x = Phaser.Math.Between(50, W - 50);
     const t = this.add.text(x, -70, emoji, { fontSize: "54px" }).setDepth(4);
+    if (kind === "power") t.setOrigin(0.5);
     this.physics.add.existing(t);
     const body = t.body as Phaser.Physics.Arcade.Body;
     body.setAllowGravity(false);
     body.setSize(48, 48);
     body.setOffset((t.width - 48) / 2, (t.height - 48) / 2);
-    t.setData("kind", wantAnimal ? "animal" : "hazard");
+    t.setData("kind", kind);
+    if (kind === "power") t.setData("power", powerKind);
     if (wantAnimal) {
       this.tweens.add({ targets: t, scaleX: 1.1, scaleY: 1.1, yoyo: true, repeat: -1, duration: 320 });
+    }
+    if (kind === "power") {
+      this.tweens.add({ targets: t, angle: 14, yoyo: true, repeat: -1, duration: 280, ease: "Sine.easeInOut" });
     }
     this.items.add(t);
   }
@@ -422,21 +534,44 @@ export class ArkAdventureScene extends Phaser.Scene {
   private onTouch(item: Phaser.GameObjects.Text) {
     if (this.dead || this.finished) return;
     const kind = item.getData("kind") as string;
+    const powerKind = (item.getData("power") as string) ?? "";
+    const emoji = item.text;
     const { x, y } = item;
     item.destroy();
     if (kind === "animal") {
       this.animalsCollected += 1;
+      this.combo = this.time.now < this.comboTimerUntil ? Math.min(5, this.combo + 1) : 1;
+      this.comboTimerUntil = this.time.now + 2200;
+      const points = 10 * this.combo;
+      this.score += points;
       this.updateHud();
+      this.comboPopup(x, y, points);
       this.sparkleBurst(x, y, 16);
       this.sfxCollect();
+      this.addGalleryAnimal(emoji);
       if (this.animalsCollected >= this.def.animalGoal) this.finishLevel();
+    } else if (kind === "power") {
+      this.applyPower(powerKind);
+      this.sparkleBurst(x, y, 20);
+      this.sfxPower();
     } else if (this.time.now > this.invulnUntil) {
       this.hit();
     }
   }
 
   private hit() {
+    if (this.shieldActive) {
+      this.shieldActive = false;
+      this.removeShieldAura();
+      this.combo = 0;
+      this.invulnUntil = this.time.now + 900;
+      this.updateHud();
+      this.flashFx(0x66e0ff, 0.28);
+      this.sfxShieldBreak();
+      return;
+    }
     this.hearts -= 1;
+    this.combo = 0;
     this.updateHud();
     this.invulnUntil = this.time.now + 1400;
     this.cameras.main.shake(180, 0.008);
@@ -467,7 +602,56 @@ export class ArkAdventureScene extends Phaser.Scene {
     this.lightningEvent?.remove();
     this.sfxWin();
     this.celebrate();
-    this.time.delayedCall(1900, () => this.cbs.onLevelComplete(this.levelIndex, this.animalsCollected));
+    this.time.delayedCall(1900, () =>
+      this.cbs.onLevelComplete(this.levelIndex, this.animalsCollected, Math.max(1, this.hearts), this.score)
+    );
+  }
+
+  private comboPopup(x: number, y: number, points: number) {
+    const pop = this.add
+      .text(x, y - 26, `+${points}`, {
+        fontSize: this.combo > 1 ? "30px" : "24px",
+        color: this.combo > 1 ? "#ffd76a" : "#ffffff",
+        stroke: "#00000088",
+        strokeThickness: 4,
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5)
+      .setDepth(6);
+    this.tweens.add({ targets: pop, y: y - 92, alpha: 0, duration: 750, onComplete: () => pop.destroy() });
+  }
+
+  private applyPower(power: string) {
+    if (power === "shield") {
+      this.shieldActive = true;
+      this.removeShieldAura();
+      this.shieldAura = this.add
+        .ellipse(this.noah.x, this.noah.y - 4, 76, 76, 0x66e0ff, 0.3)
+        .setStrokeStyle(3, 0x66e0ff, 0.8)
+        .setDepth(4);
+    } else if (power === "magnet") {
+      this.magnetUntil = this.time.now + 6000;
+    } else if (power === "slow") {
+      this.slowUntil = this.time.now + 6000;
+    }
+    this.updatePowerHud();
+  }
+
+  private removeShieldAura() {
+    if (this.shieldAura) {
+      this.shieldAura.destroy();
+      this.shieldAura = undefined;
+    }
+  }
+
+  private addGalleryAnimal(emoji: string) {
+    try {
+      const gallery = readArkGallery();
+      gallery[emoji] = (Number(gallery[emoji]) || 0) + 1;
+      localStorage.setItem(ARK_GALLERY_KEY, JSON.stringify(gallery));
+    } catch {
+      /* storage unavailable */
+    }
   }
 
   private celebrate() {
@@ -649,6 +833,14 @@ export class ArkAdventureScene extends Phaser.Scene {
     this.time.delayedCall(150, () => this.tone(659, 659, 0.15, "triangle", 0.07));
     this.time.delayedCall(300, () => this.tone(784, 784, 0.2, "triangle", 0.07));
     this.time.delayedCall(480, () => this.tone(1047, 1047, 0.35, "triangle", 0.08));
+  }
+
+  private sfxPower() {
+    this.tone(520, 1040, 0.2, "triangle", 0.07);
+  }
+
+  private sfxShieldBreak() {
+    this.tone(700, 180, 0.22, "square", 0.06);
   }
 
   // ---- public API for the React wrapper ----

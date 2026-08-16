@@ -28,15 +28,15 @@ const HELP: Record<string, React.ReactNode> = {
   "ark-adventure": (
     <ul className="list-disc pl-5">
       <li>Tap to jump - and tap again in the air for a double jump.</li>
-      <li>Collect every animal Noah needs for the ark.</li>
-      <li>Dodge the rocks and logs. Three hearts, three levels - Level 1 is free for everyone.</li>
+      <li>Collect animals fast to build your combo score, and grab power-ups: 🛡️ shield, 🧲 animal magnet, ⏳ slow-mo.</li>
+      <li>Hearts left at the finish earn your stars, and every animal joins your Ark Gallery. Level 1 is free for everyone.</li>
     </ul>
   ),
   "jonah-adventure": (
     <ul className="list-disc pl-5">
-      <li>Hold your finger to swim up, release to dive.</li>
-      <li>Collect every fish Jonah saves from the sea.</li>
-      <li>Dodge the rocks, seaweed and jellyfish. Three hearts, three levels - Level 1 is free for everyone.</li>
+      <li>Drag back on Jonah and release to fling him - the dotted trail shows where he'll fly.</li>
+      <li>Collect the 3 ⭐ stars and land in the whale to finish each stage.</li>
+      <li>Bounce pads launch you high, barrels roll, water makes you float - watch out for starfish! The Storm is free, The Belly and Nineveh unlock with All-Access.</li>
     </ul>
   ),
   "ark-pairs": (

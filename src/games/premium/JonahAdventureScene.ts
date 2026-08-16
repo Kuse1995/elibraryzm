@@ -1,102 +1,245 @@
 import Phaser from "phaser";
 
-export type JonahLevelMode = "storm" | "belly" | "shore";
-
-export interface JonahLevelDef {
+export interface StageDef {
   name: string;
-  subtitle: string;
-  baseSpeed: number;
-  spawnMs: number;
-  fishGoal: number;
-  waterTop: number;
-  waterDeep: number;
-  groundColor: number;
-  mode: JonahLevelMode;
+  hint: string;
+  goalKind: "whale" | "light" | "gate";
+  start: { x: number; y: number };
+  goal: { x: number; y: number };
+  stars: { x: number; y: number }[];
+  boxes?: { x: number; y: number; w: number; h: number }[];
+  rocks?: { x: number; y: number; r: number }[];
+  barrels?: { x: number; y: number }[];
+  pads?: { x: number; y: number }[];
+  water?: { x: number; y: number; w: number; h: number }[];
+  hazards?: { x: number; y: number }[];
 }
 
-export const JONAH_LEVELS: JonahLevelDef[] = [
+export const JONAH_CHAPTERS = ["The Storm", "The Belly", "Nineveh"] as const;
+
+export const JONAH_STAGES: StageDef[] = [
+  // ---- Chapter 1: The Storm ----
   {
-    name: "The Storm",
-    subtitle: "Swim through the raging sea",
-    baseSpeed: 200,
-    spawnMs: 1250,
-    fishGoal: 6,
-    waterTop: 0x17556e,
-    waterDeep: 0x0f3a4c,
-    groundColor: 0x2a5d73,
-    mode: "storm",
+    name: "First Fling",
+    hint: "Drag back, then release to fling Jonah",
+    goalKind: "whale",
+    start: { x: 90, y: 640 },
+    goal: { x: 400, y: 600 },
+    stars: [{ x: 180, y: 520 }, { x: 280, y: 460 }, { x: 370, y: 520 }],
   },
   {
-    name: "The Belly",
-    subtitle: "Escape the whale's belly",
-    baseSpeed: 260,
-    spawnMs: 1000,
-    fishGoal: 8,
-    waterTop: 0x6e3a5e,
-    waterDeep: 0x4a2640,
-    groundColor: 0x5a3050,
-    mode: "belly",
+    name: "Over the Rail",
+    hint: "Clear the gap between the decks",
+    goalKind: "whale",
+    start: { x: 90, y: 620 },
+    goal: { x: 400, y: 540 },
+    stars: [{ x: 150, y: 480 }, { x: 260, y: 500 }, { x: 360, y: 460 }],
+    boxes: [
+      { x: 90, y: 700, w: 180, h: 120 },
+      { x: 360, y: 700, w: 120, h: 120 },
+    ],
   },
   {
-    name: "Nineveh",
-    subtitle: "Delivered to the shore",
-    baseSpeed: 300,
-    spawnMs: 900,
-    fishGoal: 8,
-    waterTop: 0x1e7fb0,
-    waterDeep: 0x14607f,
-    groundColor: 0xd9c07a,
-    mode: "shore",
+    name: "The Toss",
+    hint: "Mind the rolling barrels",
+    goalKind: "whale",
+    start: { x: 90, y: 600 },
+    goal: { x: 410, y: 620 },
+    stars: [{ x: 200, y: 500 }, { x: 300, y: 480 }, { x: 360, y: 540 }],
+    boxes: [{ x: 90, y: 700, w: 180, h: 120 }],
+    barrels: [{ x: 150, y: 600 }, { x: 330, y: 690 }],
+  },
+  {
+    name: "The Waves",
+    hint: "Swim and float through the water",
+    goalKind: "whale",
+    start: { x: 90, y: 660 },
+    goal: { x: 410, y: 600 },
+    stars: [{ x: 150, y: 500 }, { x: 250, y: 460 }, { x: 350, y: 500 }],
+    water: [{ x: 240, y: 650, w: 400, h: 220 }],
+    rocks: [{ x: 180, y: 620, r: 24 }, { x: 290, y: 580, r: 20 }],
+  },
+  {
+    name: "Into the Whale",
+    hint: "Slip through the mouth, dodge the starfish",
+    goalKind: "whale",
+    start: { x: 80, y: 620 },
+    goal: { x: 360, y: 560 },
+    stars: [{ x: 150, y: 470 }, { x: 330, y: 450 }, { x: 200, y: 560 }],
+    boxes: [
+      { x: 270, y: 520, w: 40, h: 480 },
+      { x: 440, y: 520, w: 40, h: 480 },
+    ],
+    hazards: [{ x: 330, y: 640 }],
+  },
+  // ---- Chapter 2: The Belly ----
+  {
+    name: "Inside",
+    hint: "Ride the bounce pad to the light",
+    goalKind: "light",
+    start: { x: 80, y: 640 },
+    goal: { x: 400, y: 250 },
+    stars: [{ x: 150, y: 380 }, { x: 300, y: 320 }, { x: 400, y: 430 }],
+    boxes: [{ x: 140, y: 260, w: 680, h: 30 }],
+    pads: [{ x: 250, y: 690 }],
+  },
+  {
+    name: "The Churn",
+    hint: "Climb the ledges past the barrels",
+    goalKind: "light",
+    start: { x: 90, y: 560 },
+    goal: { x: 410, y: 300 },
+    stars: [{ x: 250, y: 450 }, { x: 340, y: 380 }, { x: 180, y: 420 }],
+    boxes: [
+      { x: 110, y: 600, w: 220, h: 40 },
+      { x: 380, y: 480, w: 120, h: 40 },
+    ],
+    barrels: [{ x: 200, y: 540 }, { x: 350, y: 700 }],
+  },
+  {
+    name: "Bubble Lift",
+    hint: "Chain the bounce pads to the top",
+    goalKind: "light",
+    start: { x: 80, y: 640 },
+    goal: { x: 410, y: 220 },
+    stars: [{ x: 250, y: 560 }, { x: 120, y: 440 }, { x: 330, y: 300 }],
+    pads: [{ x: 140, y: 680 }, { x: 300, y: 540 }, { x: 170, y: 400 }],
+  },
+  {
+    name: "The Ribs",
+    hint: "Weave between the whale's ribs",
+    goalKind: "light",
+    start: { x: 80, y: 640 },
+    goal: { x: 400, y: 300 },
+    stars: [{ x: 120, y: 380 }, { x: 240, y: 300 }, { x: 360, y: 440 }],
+    rocks: [
+      { x: 170, y: 480, r: 28 },
+      { x: 170, y: 600, r: 28 },
+      { x: 310, y: 420, r: 28 },
+      { x: 310, y: 540, r: 28 },
+      { x: 310, y: 660, r: 28 },
+    ],
+  },
+  {
+    name: "The Spout",
+    hint: "Climb the steps and escape to the light",
+    goalKind: "light",
+    start: { x: 80, y: 560 },
+    goal: { x: 240, y: 190 },
+    stars: [{ x: 140, y: 480 }, { x: 240, y: 380 }, { x: 400, y: 340 }],
+    boxes: [
+      { x: 70, y: 660, w: 140, h: 200 },
+      { x: 220, y: 560, w: 120, h: 400 },
+      { x: 360, y: 460, w: 120, h: 600 },
+    ],
+    pads: [{ x: 300, y: 500 }],
+  },
+  // ---- Chapter 3: Nineveh ----
+  {
+    name: "Ashore",
+    hint: "Cross the dunes to the city gate",
+    goalKind: "gate",
+    start: { x: 80, y: 620 },
+    goal: { x: 410, y: 480 },
+    stars: [{ x: 160, y: 500 }, { x: 280, y: 460 }, { x: 360, y: 520 }],
+    boxes: [
+      { x: 240, y: 660, w: 160, h: 200 },
+      { x: 420, y: 640, w: 120, h: 240 },
+    ],
+  },
+  {
+    name: "The Market",
+    hint: "Bounce from stall to stall",
+    goalKind: "gate",
+    start: { x: 80, y: 640 },
+    goal: { x: 400, y: 250 },
+    stars: [{ x: 250, y: 480 }, { x: 330, y: 400 }, { x: 120, y: 380 }],
+    boxes: [
+      { x: 190, y: 600, w: 100, h: 40 },
+      { x: 330, y: 520, w: 90, h: 40 },
+      { x: 220, y: 420, w: 100, h: 40 },
+    ],
+    barrels: [{ x: 240, y: 690 }],
+  },
+  {
+    name: "The Walls",
+    hint: "Over the wall, through the gate",
+    goalKind: "gate",
+    start: { x: 80, y: 620 },
+    goal: { x: 240, y: 300 },
+    stars: [{ x: 110, y: 340 }, { x: 300, y: 300 }, { x: 240, y: 150 }],
+    boxes: [
+      { x: 40, y: 480, w: 100, h: 560 },
+      { x: 370, y: 480, w: 100, h: 560 },
+    ],
+    pads: [{ x: 240, y: 700 }],
+  },
+  {
+    name: "The King's Tower",
+    hint: "Climb the platforms to the tower top",
+    goalKind: "gate",
+    start: { x: 80, y: 600 },
+    goal: { x: 380, y: 250 },
+    stars: [{ x: 140, y: 560 }, { x: 140, y: 420 }, { x: 140, y: 300 }],
+    boxes: [
+      { x: 320, y: 500, w: 120, h: 520 },
+      { x: 100, y: 640, w: 160, h: 40 },
+      { x: 100, y: 500, w: 160, h: 40 },
+      { x: 100, y: 360, w: 160, h: 40 },
+    ],
+    pads: [{ x: 250, y: 600 }, { x: 250, y: 440 }],
+  },
+  {
+    name: "Nineveh Repents",
+    hint: "One last flight to the great gate",
+    goalKind: "gate",
+    start: { x: 80, y: 640 },
+    goal: { x: 400, y: 200 },
+    stars: [{ x: 220, y: 560 }, { x: 120, y: 400 }, { x: 260, y: 260 }],
+    pads: [{ x: 140, y: 660 }, { x: 300, y: 560 }, { x: 160, y: 440 }, { x: 340, y: 320 }],
   },
 ];
 
 export interface JonahAdventureCallbacks {
   onReady: () => void;
-  onLevelComplete: (levelIndex: number, fishSaved: number) => void;
-  onGameOver: (levelIndex: number, fishSaved: number) => void;
+  onStageComplete: (stageId: number, stars: number) => void;
 }
-
-const HAZARDS_BY_MODE: Record<JonahLevelMode, string[]> = {
-  storm: ["🪨", "🌿", "jelly"],
-  belly: ["📦", "🪵", "jelly"],
-  shore: ["🪨", "🌿", "jelly"],
-};
 
 const W = 480;
 const H = 800;
-const GROUND_H = 90;
-const GROUND_TOP = H - GROUND_H;
-const TOP_CLAMP = 150;
+const FLOOR_Y = 760;
+const LAUNCH_SCALE = 6.5;
+const MAX_LAUNCH = 1050;
+
+const CHAPTER_BG: Record<string, { top: number; deep: number; floor: number; decor: "storm" | "belly" | "city" }> = {
+  0: { top: 0x17556e, deep: 0x0f3a4c, floor: 0x2a5d73, decor: "storm" },
+  1: { top: 0x6e3a5e, deep: 0x4a2640, floor: 0x5a3050, decor: "belly" },
+  2: { top: 0x2f7fa8, deep: 0x1e5c80, floor: 0xd9c07a, decor: "city" },
+};
 
 export class JonahAdventureScene extends Phaser.Scene {
   private cbs: JonahAdventureCallbacks;
-  private levelIndex = 1;
-  private def: JonahLevelDef = JONAH_LEVELS[0];
+  private stageId = 0;
+  private stage: StageDef = JONAH_STAGES[0];
 
   private jonah!: Phaser.GameObjects.Container;
-  private shadow!: Phaser.GameObjects.Ellipse;
-  private items!: Phaser.Physics.Arcade.Group;
-  private stones: Phaser.GameObjects.Arc[] = [];
-  private bubbles: Phaser.GameObjects.Arc[] = [];
+  private jonahBody!: Phaser.Physics.Arcade.Body;
+  private startX = 0;
+  private startY = 0;
+  private starsCollected = 0;
+  private starsLeft!: Phaser.GameObjects.Text;
+  private idle = true;
+  private completed = false;
 
-  private hearts = 3;
-  private fishSaved = 0;
-  private heartsText!: Phaser.GameObjects.Text;
-  private progressText!: Phaser.GameObjects.Text;
+  private dragStart = new Phaser.Math.Vector2();
+  private dragging = false;
+  private dots: Phaser.GameObjects.Arc[] = [];
 
-  private spawnEvent?: Phaser.Time.TimerEvent;
-  private lightningEvent?: Phaser.Time.TimerEvent;
-  private bubbleEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
-  private spoutEmitter?: Phaser.GameObjects.Particles.ParticleEmitter;
+  private barrels: Phaser.Physics.Arcade.Group | null = null;
+  private waterZones: { rect: Phaser.GameObjects.Rectangle; bounds: Phaser.Geom.Rectangle }[] = [];
+  private statics!: Phaser.Physics.Arcade.StaticGroup;
 
-  private holding = false;
-  private invulnUntil = 0;
-  private dead = false;
-  private finished = false;
   private muted = false;
-  private elapsed = 0;
-  private worldSpeed = 0;
-  private targetSpeed = 0;
   private audio?: AudioContext;
 
   constructor(cbs: JonahAdventureCallbacks) {
@@ -104,264 +247,278 @@ export class JonahAdventureScene extends Phaser.Scene {
     this.cbs = cbs;
   }
 
-  init(data: { level?: number }) {
-    this.levelIndex = data?.level ?? 1;
+  init(data: { stage?: number }) {
+    this.stageId = data?.stage ?? 0;
   }
 
   create() {
-    this.def = JONAH_LEVELS[this.levelIndex - 1] ?? JONAH_LEVELS[0];
-    this.hearts = 3;
-    this.fishSaved = 0;
-    this.invulnUntil = 0;
-    this.dead = false;
-    this.finished = false;
-    this.holding = false;
-    this.elapsed = 0;
-    this.worldSpeed = 0;
-    this.targetSpeed = 0;
-    this.stones = [];
-    this.bubbles = [];
+    this.stage = JONAH_STAGES[Math.min(this.stageId, JONAH_STAGES.length - 1)];
+    this.starsCollected = 0;
+    this.idle = true;
+    this.completed = false;
+    this.waterZones = [];
+    this.dots = [];
 
-    this.cameras.main.setBackgroundColor(this.def.waterTop);
+    const theme = CHAPTER_BG[Math.floor(this.stageId / 5)] ?? CHAPTER_BG[0];
+    this.cameras.main.setBackgroundColor(theme.top);
+    this.physics.world.gravity.y = 1500;
 
-    this.buildWorld();
+    this.statics = this.physics.add.staticGroup();
+    this.buildBackdrop(theme);
     this.buildJonah();
+    this.buildBodies();
+    this.buildGoal();
     this.buildHud();
-    this.buildEffects();
+    this.buildInput();
     this.showIntro();
-
-    this.items = this.physics.add.group({ allowGravity: false });
-    this.physics.add.overlap(this.jonah, this.items, (_j, item) => {
-      this.onTouch(item as Phaser.GameObjects.Text | Phaser.GameObjects.Container);
-    });
-
-    this.spawnEvent = this.time.addEvent({
-      delay: this.def.spawnMs,
-      loop: true,
-      callback: () => this.spawnItem(),
-    });
-
-    this.input.on("pointerdown", () => {
-      this.holding = true;
-      this.sfxSwim();
-    });
-    this.input.on("pointerup", () => (this.holding = false));
-    this.input.on("pointerupoutside", () => (this.holding = false));
-    this.input.keyboard?.on("keydown-SPACE", () => {
-      this.holding = true;
-      this.sfxSwim();
-    });
-    this.input.keyboard?.on("keydown-UP", () => {
-      this.holding = true;
-      this.sfxSwim();
-    });
-    this.input.keyboard?.on("keydown-W", () => {
-      this.holding = true;
-      this.sfxSwim();
-    });
-    this.input.keyboard?.on("keyup-SPACE", () => (this.holding = false));
-    this.input.keyboard?.on("keyup-UP", () => (this.holding = false));
-    this.input.keyboard?.on("keyup-W", () => (this.holding = false));
 
     this.cbs.onReady();
   }
 
   update(_time: number, delta: number) {
     const dt = Math.min(delta, 33);
-    this.elapsed += dt;
 
-    this.targetSpeed = this.dead || this.finished
-      ? 0
-      : Math.min(this.def.baseSpeed * 1.25, this.def.baseSpeed + this.elapsed * 3.2);
-    this.worldSpeed = Phaser.Math.Linear(this.worldSpeed, this.targetSpeed, 0.055);
-    const px = (this.worldSpeed * dt) / 1000;
-
-    // Jonah swim physics: hold to rise, release to sink.
-    if (!this.dead && !this.finished) {
-      const body = this.jonah.body as Phaser.Physics.Arcade.Body;
-      const target = this.holding ? -330 : 230;
-      body.setVelocityY(Phaser.Math.Linear(body.velocity.y, target, 0.12));
-      if (this.jonah.y < TOP_CLAMP) {
-        this.jonah.y = TOP_CLAMP;
-        body.setVelocityY(0);
-      }
-      this.jonah.setRotation(Phaser.Math.Clamp(body.velocity.y * -0.0006, -0.35, 0.35));
+    // water buoyancy: strong upward push so Jonah floats instead of sinking
+    const inWater = this.waterZones.find((z) => z.bounds.contains(this.jonah.x, this.jonah.y));
+    if (inWater) {
+      const v = this.jonahBody.velocity;
+      this.jonahBody.setVelocityY(Phaser.Math.Clamp(v.y - 70, -80, 90));
+      this.jonahBody.setVelocityX(v.x * 0.985);
     }
 
-    this.stones.forEach((s) => {
-      s.y += px;
-      if (s.y > H + 20) {
-        s.y = GROUND_TOP + 12;
-        s.x = Phaser.Math.Between(20, W - 20);
-      }
-    });
-
-    this.bubbles.forEach((b) => {
-      b.y += px + (26 * dt) / 1000;
-      b.x += Math.sin((this.time.now + b.getData("seed")) / 320) * 0.4;
-      if (b.y > H + 30) {
-        b.y = Phaser.Math.Between(TOP_CLAMP, GROUND_TOP - 60);
-        b.x = Phaser.Math.Between(20, W - 20);
-      }
-    });
-
-    (this.items.getChildren() as (Phaser.GameObjects.Text | Phaser.GameObjects.Container)[]).forEach((t) => {
-      const body = t.body as Phaser.Physics.Arcade.Body;
-      body.setVelocityY(this.worldSpeed);
-      const jelly = t.getData("jelly") as number | undefined;
-      if (jelly !== undefined) {
-        t.x = t.getData("baseX") + Math.sin((this.time.now + jelly) / 300) * 44;
-      }
-      if (t.y > H + 100) t.destroy();
-    });
-
-    this.shadow.x = this.jonah.x;
-    const airHeight = GROUND_TOP - 37 - this.jonah.y;
-    const shScale = Math.max(0.35, 1 - airHeight / 420);
-    this.shadow.setScale(shScale, shScale);
-    this.shadow.setAlpha(0.25 * shScale);
-
-    if (this.bubbleEmitter) {
-      this.bubbleEmitter.setPosition(this.jonah.x, this.jonah.y + 26);
-      const body = this.jonah.body as Phaser.Physics.Arcade.Body;
-      this.bubbleEmitter.emitting = !this.dead && !this.finished && body.velocity.y < -40;
+    // idle detection for re-flinging
+    if (!this.completed) {
+      const speed = this.jonahBody.velocity.length();
+      if (!this.idle && speed < 25) this.idle = true;
+      if (this.idle && speed > 60) this.idle = false;
     }
+    this.jonah.setRotation(Phaser.Math.Clamp(this.jonahBody.velocity.x * -0.0004, -0.5, 0.5));
+
+    // keep Jonah on the stage
+    if (this.jonah.y > H + 160 || this.jonah.x < -200 || this.jonah.x > W + 200) this.returnToStart(false);
   }
 
-  // ---- world & actors ----
+  // ---- world ----
 
-  private buildWorld() {
-    this.add.rectangle(W / 2, H / 2, W, H, this.def.waterTop).setDepth(0);
-    this.add.rectangle(W / 2, H * 0.6, W, H * 0.8, this.def.waterDeep, 0.6).setDepth(0);
+  private buildBackdrop(theme: { top: number; deep: number; floor: number; decor: string }) {
+    this.add.rectangle(W / 2, H / 2, W, H, theme.top).setDepth(0);
+    this.add.rectangle(W / 2, H * 0.7, W, H * 0.6, theme.deep, 0.5).setDepth(0);
 
-    if (this.def.mode === "storm") this.buildStormSurface();
-    if (this.def.mode === "belly") this.buildBellyWalls();
-    if (this.def.mode === "shore") this.buildShoreDecor();
-
-    this.add.rectangle(W / 2, GROUND_TOP + GROUND_H / 2, W, GROUND_H, this.def.groundColor).setDepth(1);
-    this.add.rectangle(W / 2, GROUND_TOP + 4, W, 8, 0xffffff, 0.12).setDepth(2);
-
-    const groundStatic = this.add.rectangle(W / 2, GROUND_TOP + GROUND_H / 2, W, GROUND_H, 0x000000, 0);
-    this.physics.add.existing(groundStatic, true);
-
-    for (let i = 0; i < 8; i++) {
-      const s = this.add.circle(
-        Phaser.Math.Between(20, W - 20),
-        Phaser.Math.Between(GROUND_TOP + 14, H - 10),
-        Phaser.Math.Between(3, 6),
-        0x000000,
-        0.14
-      );
-      s.setDepth(2);
-      this.stones.push(s);
+    if (theme.decor === "storm") {
+      this.add.rectangle(W / 2, 30, W, 60, 0x2e6d8f).setDepth(1);
+      const rainCfg: Phaser.Types.GameObjects.Particles.ParticleEmitterConfig = {
+        x: 0,
+        y: 0,
+        emitZone: { type: "random", source: new Phaser.Geom.Rectangle(0, -20, W, 20) },
+        speedY: { min: 500, max: 700 },
+        lifespan: 900,
+        quantity: 1,
+        frequency: 60,
+        scale: { min: 0.6, max: 1.2 },
+        alpha: { start: 0.35, end: 0 },
+        tint: 0x9ec9ff,
+      };
+      this.add.particles(0, 0, this.ensureDot(), rainCfg).setDepth(3);
+    } else if (theme.decor === "belly") {
+      const rib = (x: number) => {
+        this.add.rectangle(x, H / 2, 30, H, 0x8a4a72).setDepth(1);
+      };
+      rib(12);
+      rib(W - 12);
+      const bg = this.add.text(W / 2, 150, "🫧", { fontSize: "36px" }).setAlpha(0.3).setDepth(1);
+      this.tweens.add({ targets: bg, y: 130, yoyo: true, repeat: -1, duration: 1600 });
+    } else {
+      // city: warm sun
+      const sun = this.add.text(70, 90, "☀️", { fontSize: "52px" }).setDepth(0).setAlpha(0.9);
+      this.tweens.add({ targets: sun, y: 80, yoyo: true, repeat: -1, duration: 1800 });
+      this.add.rectangle(W - 70, 320, 90, 460, 0xd9a85a, 0.35).setDepth(1);
     }
 
-    // ambient bubbles
-    for (let i = 0; i < 10; i++) {
-      const b = this.add.circle(
-        Phaser.Math.Between(20, W - 20),
-        Phaser.Math.Between(TOP_CLAMP, GROUND_TOP - 40),
-        Phaser.Math.Between(2, 5),
-        0xffffff,
-        0.18
-      );
-      b.setData("seed", Phaser.Math.Between(0, 1000));
-      b.setDepth(2);
-      this.bubbles.push(b);
-    }
-
-    this.jonah = this.buildJonah();
-    this.shadow = this.add.ellipse(W / 2, GROUND_TOP + 12, 46, 13, 0x000000, 0.25).setDepth(3);
-    this.physics.add.collider(this.jonah, groundStatic);
+    // floor
+    this.add.rectangle(W / 2, FLOOR_Y + 20, W, 80, theme.floor).setDepth(1);
+    this.add.rectangle(W / 2, FLOOR_Y + 2, W, 6, 0xffffff, 0.15).setDepth(2);
+    const floorStatic = this.add.rectangle(W / 2, FLOOR_Y + 40, W, 80, 0x000000, 0);
+    this.statics.add(floorStatic);
+    (floorStatic.body as Phaser.Physics.Arcade.StaticBody).bounce.set(0.4);
   }
 
-  private buildStormSurface() {
-    this.add.rectangle(W / 2, 45, W, 90, 0x2e6d8f).setDepth(6);
-    const waveCrests: Phaser.GameObjects.Arc[] = [];
-    for (let i = 0; i < 8; i++) {
-      const crest = this.add.arc(20 + i * 66, 88, 26, Math.PI, Math.PI * 2, false, 0xd8f0ff, 0.85);
-      crest.setDepth(7);
-      waveCrests.push(crest);
+  private ensureDot(): string {
+    if (!this.textures.exists("dot")) {
+      const g = this.add.graphics();
+      g.fillStyle(0xffffff, 1);
+      g.fillCircle(3, 3, 3);
+      g.generateTexture("dot", 6, 6);
+      g.destroy();
     }
-    this.tweens.addCounter({
-      from: 0,
-      to: 66,
-      duration: 1400,
-      repeat: -1,
-      onUpdate: (tw) => {
-        waveCrests.forEach((c, i) => {
-          const base = 20 + i * 66;
-          c.x = ((base + tw.getValue()) % W) - 26;
-        });
-      },
-    });
-    this.lightningEvent = this.time.addEvent({
-      delay: 3600,
-      loop: true,
-      callback: () => this.lightningFlash(),
-    });
+    return "dot";
   }
 
-  private buildBellyWalls() {
-    const rib = (x: number) => {
-      this.add.rectangle(x, H / 2, 34, H, 0x8a4a72).setDepth(1);
-      this.add.rectangle(x, H / 2, 8, H, 0x5a3050, 0.8).setDepth(1);
+  private buildBodies() {
+    const statics = this.statics;
+    const makeBox = (b: { x: number; y: number; w: number; h: number }) => {
+      const rect = this.add.rectangle(b.x, b.y, b.w, b.h, 0x9c6b3c).setStrokeStyle(3, 0x6b4423).setDepth(2);
+      statics.add(rect);
+      const body = rect.body as Phaser.Physics.Arcade.StaticBody;
+      body.bounce.set(0.35);
     };
-    rib(16);
-    rib(W - 16);
-    this.add
-      .text(W / 2, 130, "🫧", { fontSize: "40px" })
-      .setDepth(2)
-      .setAlpha(0.5);
+    this.stage.boxes?.forEach(makeBox);
+
+    this.stage.rocks?.forEach((r) => {
+      const rock = this.add.circle(r.x, r.y, r.r, 0x8a97a5).setStrokeStyle(3, 0x5d6a78).setDepth(2);
+      statics.add(rock);
+      (rock.body as Phaser.Physics.Arcade.StaticBody).bounce.set(0.3);
+      this.add.circle(r.x - r.r * 0.3, r.y - r.r * 0.3, r.r * 0.22, 0x6d7a88).setDepth(3);
+    });
+
+    this.stage.hazards?.forEach((hz) => {
+      this.buildStarfish(hz.x, hz.y);
+      const hit = this.add.zone(hz.x, hz.y, 46, 46);
+      statics.add(hit);
+      (hit.body as Phaser.Physics.Arcade.StaticBody).bounce.set(0.6);
+    });
+
+    this.stage.pads?.forEach((p) => {
+      const pad = this.add.circle(p.x, p.y, 20, 0xffd76a).setStrokeStyle(4, 0xf0a832).setDepth(2);
+      statics.add(pad);
+      (pad.body as Phaser.Physics.Arcade.StaticBody).bounce.set(1.35);
+      this.tweens.add({
+        targets: pad,
+        scaleX: 1.12,
+        scaleY: 1.12,
+        yoyo: true,
+        repeat: -1,
+        duration: 500,
+        ease: "Sine.easeInOut",
+      });
+    });
+
+    this.stage.water?.forEach((wtr) => {
+      const rect = this.add.rectangle(wtr.x, wtr.y, wtr.w, wtr.h, 0x1e7fb0, 0.55).setDepth(2);
+      const topLine = this.add.rectangle(wtr.x, wtr.y - wtr.h / 2, wtr.w, 6, 0xbfe3ff, 0.7).setDepth(3);
+      this.tweens.add({ targets: topLine, y: wtr.y - wtr.h / 2 + 4, yoyo: true, repeat: -1, duration: 900 });
+      this.waterZones.push({
+        rect,
+        bounds: new Phaser.Geom.Rectangle(wtr.x - wtr.w / 2, wtr.y - wtr.h / 2, wtr.w, wtr.h),
+      });
+    });
+
+    this.barrels = this.physics.add.group({ allowGravity: true });
+    this.stage.barrels?.forEach((b) => {
+      const barrel = this.add.container(b.x, b.y).setDepth(3);
+      const body = this.add.ellipse(0, 0, 36, 36, 0xa0522d).setStrokeStyle(3, 0x6b3a1a);
+      const hoop = this.add.rectangle(0, -14, 38, 5, 0x5d3a1a);
+      const hoop2 = this.add.rectangle(0, 14, 38, 5, 0x5d3a1a);
+      barrel.add([body, hoop, hoop2]);
+      this.physics.add.existing(barrel);
+      const phBody = barrel.body as Phaser.Physics.Arcade.Body;
+      phBody.setCircle(18, -18, -18);
+      phBody.setBounce(0.4);
+      phBody.setFriction(0.5, 0.1);
+      this.barrels.add(barrel);
+    });
+    if (this.barrels) {
+      this.physics.add.collider(this.barrels, this.statics);
+      this.physics.add.collider(this.jonah, this.barrels);
+    }
+
+    // stars
+    this.stage.stars.forEach((s) => {
+      const star = this.add.text(s.x, s.y, "⭐", { fontSize: "40px" }).setOrigin(0.5).setDepth(3);
+      this.tweens.add({ targets: star, scaleX: 1.2, scaleY: 1.2, yoyo: true, repeat: -1, duration: 600, ease: "Sine.easeInOut" });
+      const trigger = this.add.zone(s.x, s.y, 56, 56);
+      this.physics.add.existing(trigger, true);
+      trigger.setData("starVisual", star);
+      this.physics.add.overlap(this.jonah, trigger, (_j, t) => {
+        const vis = (t as Phaser.GameObjects.Zone).getData("starVisual") as Phaser.GameObjects.Text;
+        if (!vis.active) return;
+        vis.destroy();
+        t.destroy();
+        this.starsCollected += 1;
+        this.updateHud();
+        this.sparkleBurst(s.x, s.y, 14);
+        this.sfxCollect();
+      });
+    });
   }
 
-  private buildShoreDecor() {
-    const coral = (x: number, color: number, size: number) => {
-      const c = this.add.container(x, GROUND_TOP - size / 2);
-      const stem = this.add.rectangle(0, 0, 8, size, color);
-      const branches = [
-        this.add.rectangle(-8, -size / 4, 8, size / 2, color),
-        this.add.rectangle(8, -size / 5, 8, size / 2.4, color),
-      ];
-      c.add([stem, branches[0], branches[1]]);
-      c.setDepth(2);
-      this.tweens.add({ targets: branches, rotation: 0.06, yoyo: true, repeat: -1, duration: 900, ease: "Sine.easeInOut" });
-    };
-    coral(60, 0xe86f9e, 70);
-    coral(W - 60, 0x7bd97b, 84);
-    const sun = this.add.text(70, 110, "☀️", { fontSize: "52px" }).setDepth(0).setAlpha(0.9);
-    this.tweens.add({ targets: sun, y: 100, yoyo: true, repeat: -1, duration: 1800, ease: "Sine.easeInOut" });
+  private buildStarfish(x: number, y: number): Phaser.GameObjects.Container {
+    const sf = this.add.container(x, y).setDepth(3);
+    const g = this.add.graphics();
+    g.fillStyle(0xe86f6f, 1);
+    const points = 10;
+    const outer = 26;
+    const inner = 12;
+    g.beginPath();
+    for (let i = 0; i < points * 2; i++) {
+      const r = i % 2 === 0 ? outer : inner;
+      const a = (i / (points * 2)) * Math.PI * 2 - Math.PI / 2;
+      const px = Math.cos(a) * r;
+      const py = Math.sin(a) * r;
+      if (i === 0) g.moveTo(px, py);
+      else g.lineTo(px, py);
+    }
+    g.closePath();
+    g.fillPath();
+    g.fillStyle(0xf5f5f5, 1);
+    g.fillCircle(0, 0, 8);
+    sf.add(g);
+    return sf;
   }
 
-  private buildJonah(): Phaser.GameObjects.Container {
-    const c = this.add.container(W / 2, GROUND_TOP - 37).setDepth(5);
-    const robe = this.add.rectangle(0, 8, 36, 44, 0xd97b3f).setStrokeStyle(3, 0xa85a26);
-    const belt = this.add.rectangle(0, 2, 38, 6, 0x8a5a2f);
-    const armL = this.add.rectangle(-22, -2, 7, 18, 0xd97b3f).setAngle(24);
-    const armR = this.add.rectangle(22, -2, 7, 18, 0xd97b3f).setAngle(-24);
-    const head = this.add.circle(0, -24, 13, 0xf2c194);
-    const beard = this.add.ellipse(0, -17, 18, 14, 0xf5f5f5);
-    const eyeL = this.add.circle(-4, -26, 2, 0x222222);
-    const eyeR = this.add.circle(4, -26, 2, 0x222222);
-    const mouth = this.add.arc(0, -20, 6, 0.2, Math.PI - 0.2, false, 0x8a5a2f);
-    c.add([robe, belt, armL, armR, head, beard, eyeL, eyeR, mouth]);
+  private buildJonah() {
+    this.startX = this.stage.start.x;
+    this.startY = this.stage.start.y;
+    this.jonah = this.add.container(this.startX, this.startY).setDepth(5);
+    const robe = this.add.rectangle(0, 0, 26, 28, 0xd97b3f).setStrokeStyle(2, 0xa85a26);
+    const head = this.add.circle(0, -20, 11, 0xf2c194);
+    const beard = this.add.ellipse(0, -14, 15, 11, 0xf5f5f5);
+    const eyeL = this.add.circle(-4, -22, 1.8, 0x222222);
+    const eyeR = this.add.circle(4, -22, 1.8, 0x222222);
+    this.jonah.add([robe, head, beard, eyeL, eyeR]);
 
-    this.physics.add.existing(c);
-    const body = c.body as Phaser.Physics.Arcade.Body;
-    body.setSize(40, 78);
-    body.setOffset(-20, -39);
-    body.setAllowGravity(false);
-    return c;
+    this.physics.add.existing(this.jonah);
+    this.jonahBody = this.jonah.body as Phaser.Physics.Arcade.Body;
+    this.jonahBody.setCircle(15, -15, -15);
+    this.jonahBody.setBounce(0.5);
+    this.jonahBody.setFriction(0.3, 0.02);
+    this.physics.add.collider(this.jonah, this.statics);
+  }
+
+  private buildGoal() {
+    const { goal, goalKind } = this.stage;
+    const g = this.add.container(goal.x, goal.y).setDepth(4);
+    if (goalKind === "whale") {
+      const body = this.add.ellipse(0, 10, 110, 66, 0x23456e);
+      const belly = this.add.ellipse(0, 26, 84, 32, 0x9ec9e8);
+      const eye = this.add.circle(-34, -6, 7, 0xffffff);
+      const pupil = this.add.circle(-36, -6, 3, 0x111111);
+      const mouth = this.add.circle(30, 10, 20, 0x0d1b2a);
+      g.add([body, belly, eye, pupil, mouth]);
+      this.tweens.add({ targets: g, scaleX: 1.06, scaleY: 1.06, yoyo: true, repeat: -1, duration: 700, ease: "Sine.easeInOut" });
+    } else if (goalKind === "light") {
+      const glow = this.add.circle(0, 0, 40, 0xfff2b0, 0.35);
+      const beam = this.add.rectangle(0, 26, 60, 90, 0xfff2b0, 0.3);
+      g.add([beam, glow]);
+      this.tweens.add({ targets: glow, alpha: 0.15, yoyo: true, repeat: -1, duration: 800 });
+    } else {
+      const wall = this.add.rectangle(0, 10, 100, 60, 0xd9a85a).setStrokeStyle(3, 0x8a6a3a);
+      const arch = this.add.arc(0, -14, 30, Math.PI, Math.PI * 2, false, 0x0d1b2a);
+      const door = this.add.rectangle(0, 24, 34, 24, 0x0d1b2a);
+      g.add([wall, door, arch]);
+      this.tweens.add({ targets: g, y: goal.y - 6, yoyo: true, repeat: -1, duration: 900, ease: "Sine.easeInOut" });
+    }
+    const ring = this.add.circle(0, 0, 46, 0xffffff, 0.18).setStrokeStyle(3, 0xffffff, 0.6);
+    g.add(ring);
+
+    const trigger = this.add.zone(goal.x, goal.y, 88, 88);
+    this.physics.add.existing(trigger, true);
+    this.physics.add.overlap(this.jonah, trigger, () => this.completeStage());
   }
 
   private buildHud() {
-    this.heartsText = this.add.text(16, 12, "", { fontSize: "30px" }).setDepth(10);
-    this.progressText = this.add
-      .text(W - 16, 14, `🐟 ${this.fishSaved}/${this.def.fishGoal}`, { fontSize: "26px" })
-      .setOrigin(1, 0)
-      .setDepth(10);
+    this.starsLeft = this.add.text(16, 12, "⭐ 0/3", { fontSize: "30px" }).setDepth(10);
     this.add
-      .text(W / 2, 14, `Level ${this.levelIndex} — ${this.def.name}`, {
+      .text(W / 2, 14, `${Math.floor(this.stageId / 5) + 1}-${(this.stageId % 5) + 1} ${this.stage.name}`, {
         fontSize: "20px",
         color: "#ffffff",
         stroke: "#00000088",
@@ -370,43 +527,16 @@ export class JonahAdventureScene extends Phaser.Scene {
       })
       .setOrigin(0.5, 0)
       .setDepth(10);
-    this.updateHud();
   }
 
   private updateHud() {
-    const left = Math.max(0, this.hearts);
-    this.heartsText.setText("❤️".repeat(left) + "🖤".repeat(3 - left));
-    this.progressText.setText(`🐟 ${this.fishSaved}/${this.def.fishGoal}`);
-  }
-
-  private buildEffects() {
-    if (!this.textures.exists("dot")) {
-      const g = this.add.graphics();
-      g.fillStyle(0xffffff, 1);
-      g.fillCircle(3, 3, 3);
-      g.generateTexture("dot", 6, 6);
-      g.destroy();
-    }
-    const bubbleCfg: Phaser.Types.GameObjects.Particles.ParticleEmitterConfig = {
-      x: W / 2,
-      y: GROUND_TOP - 60,
-      speed: { min: 20, max: 70 },
-      angle: { min: 240, max: 300 },
-      lifespan: { min: 500, max: 1100 },
-      scale: { min: 0.3, max: 0.9 },
-      alpha: { start: 0.5, end: 0 },
-      tint: 0xffffff,
-      quantity: 2,
-      frequency: 60,
-      emitting: false,
-    };
-    this.bubbleEmitter = this.add.particles(0, 0, "dot", bubbleCfg).setDepth(4);
+    this.starsLeft.setText(`⭐ ${this.starsCollected}/3`);
   }
 
   private showIntro() {
     const intro = this.add
-      .text(W / 2, H * 0.42, `Level ${this.levelIndex} — ${this.def.name}\n${this.def.subtitle}`, {
-        fontSize: "34px",
+      .text(W / 2, H * 0.3, `${this.stage.name}\n${this.stage.hint}`, {
+        fontSize: "28px",
         color: "#ffffff",
         stroke: "#000000aa",
         strokeThickness: 6,
@@ -415,225 +545,123 @@ export class JonahAdventureScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setDepth(20);
-    this.tweens.add({ targets: intro, alpha: 0, delay: 1900, duration: 500, onComplete: () => intro.destroy() });
+    this.tweens.add({ targets: intro, alpha: 0, delay: 1800, duration: 500, onComplete: () => intro.destroy() });
   }
 
-  // ---- gameplay ----
+  // ---- input: fling ----
 
-  private spawnItem() {
-    if (this.dead || this.finished) return;
-    const wantFish = this.fishSaved < this.def.fishGoal && Math.random() < 0.58;
-    const minX = this.def.mode === "belly" ? 70 : 50;
-    const maxX = this.def.mode === "belly" ? W - 70 : W - 50;
-    const x = Phaser.Math.Between(minX, maxX);
-    if (wantFish) {
-      const t = this.add.text(x, -70, "🐟", { fontSize: "52px" }).setDepth(4);
-      this.physics.add.existing(t);
-      const body = t.body as Phaser.Physics.Arcade.Body;
-      body.setAllowGravity(false);
-      body.setSize(46, 46);
-      body.setOffset((t.width - 46) / 2, (t.height - 46) / 2);
-      t.setData("kind", "fish");
-      this.tweens.add({ targets: t, scaleX: 1.1, scaleY: 1.1, yoyo: true, repeat: -1, duration: 320 });
-      this.items.add(t);
+  private buildInput() {
+    this.input.on("pointerdown", (p: Phaser.Input.Pointer) => {
+      this.dragStart.set(p.x, p.y);
+      this.dragging = true;
+      this.buildDots();
+      this.placeDots(this.dragStart, this.dragStart);
+    });
+    this.input.on("pointermove", (p: Phaser.Input.Pointer) => {
+      if (!this.dragging) return;
+      this.placeDots(this.dragStart, new Phaser.Math.Vector2(p.x, p.y));
+    });
+    this.input.on("pointerup", (p: Phaser.Input.Pointer) => {
+      if (!this.dragging) return;
+      this.dragging = false;
+      this.hideDots();
+      const vec = new Phaser.Math.Vector2(this.dragStart.x - p.x, this.dragStart.y - p.y);
+      const len = vec.length();
+      if (len < 25 || this.completed) return;
+      const speed = Math.min(len * LAUNCH_SCALE, MAX_LAUNCH);
+      vec.normalize().scale(speed);
+      this.jonahBody.setVelocity(vec.x, vec.y);
+      this.idle = false;
+      this.sfxFling();
+      this.stretchFx();
+    });
+    this.input.on("pointerupoutside", () => {
+      this.dragging = false;
+      this.hideDots();
+    });
+  }
+
+  private buildDots() {
+    for (let i = 0; i < 14; i++) {
+      const dot = this.add.circle(0, 0, 4, 0xffffff, 0.55).setDepth(6).setVisible(false);
+      this.dots.push(dot);
+    }
+  }
+
+  private placeDots(from: Phaser.Math.Vector2, to: Phaser.Math.Vector2) {
+    const vec = new Phaser.Math.Vector2(from.x - to.x, from.y - to.y);
+    const len = vec.length();
+    if (len < 25) {
+      this.hideDots();
       return;
     }
-    const pool = HAZARDS_BY_MODE[this.def.mode];
-    const pick = pool[Phaser.Math.Between(0, pool.length - 1)];
-    if (pick === "jelly") {
-      const jelly = this.add.container(x, -70).setDepth(4);
-      const dome = this.add.circle(0, -12, 18, 0xe86f9e).setAlpha(0.95);
-      const dome2 = this.add.circle(0, -6, 14, 0xf29bc0);
-      const tentacle = this.add.rectangle(0, 18, 4, 34, 0xe86f9e).setAlpha(0.7);
-      const tentacle2 = this.add.rectangle(-8, 16, 4, 26, 0xe86f9e).setAlpha(0.6);
-      const tentacle3 = this.add.rectangle(8, 16, 4, 26, 0xe86f9e).setAlpha(0.6);
-      jelly.add([dome, dome2, tentacle, tentacle2, tentacle3]);
-      this.physics.add.existing(jelly);
-      const body = jelly.body as Phaser.Physics.Arcade.Body;
-      body.setAllowGravity(false);
-      body.setSize(44, 58);
-      body.setOffset(-22, -30);
-      jelly.setData("kind", "hazard");
-      jelly.setData("baseX", x);
-      jelly.setData("jelly", Phaser.Math.Between(0, 2000));
-      this.items.add(jelly);
-      return;
-    }
-    const t = this.add.text(x, -70, pick, { fontSize: "54px" }).setDepth(4);
-    this.physics.add.existing(t);
-    const body = t.body as Phaser.Physics.Arcade.Body;
-    body.setAllowGravity(false);
-    body.setSize(48, 48);
-    body.setOffset((t.width - 48) / 2, (t.height - 48) / 2);
-    t.setData("kind", "hazard");
-    this.items.add(t);
+    const speed = Math.min(len * LAUNCH_SCALE, MAX_LAUNCH);
+    const vx = (vec.x / len) * speed;
+    const vy = (vec.y / len) * speed;
+    let px = this.jonah.x;
+    let py = this.jonah.y;
+    let cvx = vx;
+    let cvy = vy;
+    this.dots.forEach((dot, i) => {
+      cvx *= 0.985;
+      cvy += this.physics.world.gravity.y * 0.055;
+      px += cvx * 0.055;
+      py += cvy * 0.055;
+      dot.setPosition(px, py);
+      dot.setVisible(i > 1);
+      dot.setAlpha(0.6 - i * 0.03);
+    });
   }
 
-  private onTouch(item: Phaser.GameObjects.Text | Phaser.GameObjects.Container) {
-    if (this.dead || this.finished) return;
-    const kind = item.getData("kind") as string;
-    const { x, y } = item;
-    item.destroy();
-    if (kind === "fish") {
-      this.fishSaved += 1;
-      this.updateHud();
-      this.sparkleBurst(x, y, 16);
-      this.sfxCollect();
-      if (this.fishSaved >= this.def.fishGoal) this.finishLevel();
-    } else if (this.time.now > this.invulnUntil) {
-      this.hit();
-    }
+  private hideDots() {
+    this.dots.forEach((d) => d.setVisible(false));
   }
 
-  private hit() {
-    this.hearts -= 1;
-    this.updateHud();
-    this.invulnUntil = this.time.now + 1400;
-    this.cameras.main.shake(180, 0.008);
-    this.flashFx(0xff3b30, 0.32);
-    this.tweens.add({ targets: this.jonah, alpha: 0.35, yoyo: true, repeat: 5, duration: 90 });
-    this.sfxHit();
-    if (this.hearts <= 0) this.die();
-  }
+  // ---- stage outcomes ----
 
-  private die() {
-    if (this.dead) return;
-    this.dead = true;
-    this.spawnEvent?.remove();
-    this.lightningEvent?.remove();
-    this.flashFx(0xff3b30, 0.5);
-    this.cameras.main.shake(400, 0.012);
-    this.tweens.add({ targets: this.jonah, angle: 95, y: this.jonah.y + 30, duration: 420 });
-    this.sfxDie();
-    this.time.delayedCall(1500, () => this.cbs.onGameOver(this.levelIndex, this.fishSaved));
-  }
-
-  private finishLevel() {
-    if (this.finished) return;
-    this.finished = true;
-    this.spawnEvent?.remove();
-    this.lightningEvent?.remove();
+  private completeStage() {
+    if (this.completed) return;
+    this.completed = true;
+    this.jonahBody.setVelocity(0, 0);
     this.sfxWin();
-    if (this.def.mode === "shore") this.whaleFinale();
-    else this.celebrate();
-    this.time.delayedCall(this.def.mode === "shore" ? 3400 : 1900, () =>
-      this.cbs.onLevelComplete(this.levelIndex, this.fishSaved)
-    );
+    this.confettiBurst(this.stage.goal.x, this.stage.goal.y, 60);
+    const msg = this.add
+      .text(W / 2, H * 0.35, "Stage complete!", {
+        fontSize: "36px",
+        color: "#ffffff",
+        stroke: "#000000aa",
+        strokeThickness: 8,
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5)
+      .setDepth(20)
+      .setScale(0.3);
+    this.tweens.add({ targets: msg, scaleX: 1, scaleY: 1, duration: 500, ease: "Back.easeOut" });
+    this.time.delayedCall(1500, () => this.cbs.onStageComplete(this.stageId, this.starsCollected));
   }
 
-  private celebrate() {
-    this.confettiBurst(W / 2, 220, 60);
-    if (this.def.mode === "storm") {
-      // the big fish swims past behind Jonah
-      const whale = this.add.container(W / 2, H + 200).setDepth(3);
-      const body = this.add.ellipse(0, 0, 190, 90, 0x2c5f8a, 0.7);
-      const belly = this.add.ellipse(0, 26, 150, 46, 0x9ec9e8, 0.6);
-      const eye = this.add.circle(-62, -12, 7, 0xffffff, 0.8);
-      whale.add([body, belly, eye]);
-      this.tweens.add({ targets: whale, y: 300, duration: 1600, ease: "Sine.easeOut", onComplete: () => whale.destroy() });
-    } else {
-      // light beam from above — Jonah is escaping the belly
-      const beam = this.add.rectangle(W / 2, 120, 180, 240, 0xfff2b0, 0.25).setDepth(3);
-      this.tweens.add({ targets: beam, alpha: 0, duration: 1200, onComplete: () => beam.destroy() });
+  private returnToStart(animate: boolean) {
+    this.jonahBody.setVelocity(0, 0);
+    this.jonahBody.reset(this.startX, this.startY);
+    this.idle = true;
+    if (animate) {
+      this.splashBurst(this.startX, this.startY);
+      this.sfxSplash();
+      this.tweens.add({ targets: this.jonah, scaleX: 0.8, scaleY: 0.8, yoyo: true, repeat: 1, duration: 130 });
     }
-  }
-
-  private whaleFinale() {
-    const cx = W / 2;
-    // whale rises and swallows Jonah, then spouts him out above the screen
-    const whale = this.add.container(cx, H + 220).setDepth(8);
-    const body = this.add.ellipse(0, 0, 170, 96, 0x23456e);
-    const belly = this.add.ellipse(0, 30, 140, 46, 0x9ec9e8);
-    const eye = this.add.circle(-56, -14, 8, 0xffffff);
-    const pupil = this.add.circle(-58, -14, 3, 0x111111);
-    const tailL = this.add.triangle(-40, -80, 0, -30, -46, -14, -46, -46, 0x23456e);
-    const tailR = this.add.triangle(-40, -80, 0, -30, -34, -14, -34, -46, 0x23456e);
-    const smile = this.add.arc(-28, 18, 16, 0.15, Math.PI - 0.15, false, 0x111111);
-    whale.add([tailL, tailR, body, belly, eye, pupil, smile]);
-
-    this.tweens.add({
-      targets: whale,
-      y: this.jonah.y + 30,
-      duration: 1100,
-      ease: "Sine.easeIn",
-      onComplete: () => {
-        this.tweens.add({ targets: this.jonah, alpha: 0, duration: 250 });
-      },
-    });
-    this.tweens.add({
-      targets: whale,
-      y: 60,
-      duration: 1100,
-      delay: 1200,
-      ease: "Sine.easeOut",
-      onComplete: () => {
-        // spout: Jonah launched up out of the whale
-        this.jonah.setAlpha(1);
-        this.jonah.setPosition(cx, 40);
-        this.jonah.setRotation(-1.5);
-        this.spoutBurst(cx, 30);
-        this.tweens.add({
-          targets: this.jonah,
-          y: -140,
-          rotation: -2.4,
-          duration: 800,
-          ease: "Sine.easeOut",
-          onComplete: () => {
-            const msg = this.add
-              .text(cx, 200, "NINEVEH!", {
-                fontSize: "44px",
-                color: "#ffffff",
-                stroke: "#000000aa",
-                strokeThickness: 8,
-                fontStyle: "bold",
-              })
-              .setOrigin(0.5)
-              .setDepth(20)
-              .setScale(0.3);
-            this.tweens.add({ targets: msg, scaleX: 1, scaleY: 1, duration: 500, ease: "Back.easeOut" });
-            this.confettiBurst(cx, 260, 80);
-          },
-        });
-      },
-    });
-  }
-
-  private spoutBurst(x: number, y: number) {
-    const cfg: Phaser.Types.GameObjects.Particles.ParticleEmitterConfig = {
-      x,
-      y,
-      speed: { min: 120, max: 420 },
-      angle: { min: 230, max: 310 },
-      gravityY: 900,
-      lifespan: { min: 600, max: 1200 },
-      scale: { min: 0.4, max: 1.2 },
-      alpha: { start: 0.9, end: 0 },
-      tint: 0xffffff,
-      quantity: 40,
-      emitting: false,
-    };
-    const e = this.add.particles(0, 0, "dot", cfg);
-    e.explode(40, x, y);
-    this.time.delayedCall(2200, () => e.destroy());
   }
 
   // ---- juice ----
 
-  private flashFx(color: number, alpha: number) {
-    const f = this.add.rectangle(W / 2, H / 2, W, H, color, alpha).setDepth(50);
-    this.tweens.add({ targets: f, alpha: 0, duration: 260, onComplete: () => f.destroy() });
-  }
-
-  private lightningFlash() {
-    this.flashFx(0xffffff, 0.28);
-    this.sfxThunder();
+  private stretchFx() {
+    this.tweens.add({ targets: this.jonah, scaleX: 1.25, scaleY: 0.8, yoyo: true, duration: 150 });
   }
 
   private sparkleBurst(x: number, y: number, count: number) {
     const cfg: Phaser.Types.GameObjects.Particles.ParticleEmitterConfig = {
       x,
       y,
-      speed: { min: 60, max: 260 },
+      speed: { min: 60, max: 240 },
       angle: { min: 200, max: 340 },
       gravityY: 420,
       lifespan: { min: 400, max: 800 },
@@ -642,9 +670,28 @@ export class JonahAdventureScene extends Phaser.Scene {
       quantity: count,
       emitting: false,
     };
-    const e = this.add.particles(0, 0, "dot", cfg);
+    const e = this.add.particles(0, 0, this.ensureDot(), cfg);
     e.explode(count, x, y);
     this.time.delayedCall(1600, () => e.destroy());
+  }
+
+  private splashBurst(x: number, y: number) {
+    const cfg: Phaser.Types.GameObjects.Particles.ParticleEmitterConfig = {
+      x,
+      y,
+      speed: { min: 100, max: 320 },
+      angle: { min: 220, max: 320 },
+      gravityY: 900,
+      lifespan: { min: 500, max: 1000 },
+      scale: { min: 0.4, max: 1.1 },
+      alpha: { start: 0.9, end: 0 },
+      tint: 0xbfe3ff,
+      quantity: 26,
+      emitting: false,
+    };
+    const e = this.add.particles(0, 0, this.ensureDot(), cfg);
+    e.explode(26, x, y);
+    this.time.delayedCall(1800, () => e.destroy());
   }
 
   private confettiBurst(x: number, y: number, count: number) {
@@ -660,7 +707,7 @@ export class JonahAdventureScene extends Phaser.Scene {
       quantity: count,
       emitting: false,
     };
-    const e = this.add.particles(0, 0, "dot", cfg);
+    const e = this.add.particles(0, 0, this.ensureDot(), cfg);
     e.explode(count, x, y);
     this.time.delayedCall(2400, () => e.destroy());
   }
@@ -697,8 +744,8 @@ export class JonahAdventureScene extends Phaser.Scene {
     }
   }
 
-  private sfxSwim() {
-    this.tone(240, 420, 0.12, "sine", 0.05);
+  private sfxFling() {
+    this.tone(200, 480, 0.16, "triangle", 0.06);
   }
 
   private sfxCollect() {
@@ -706,16 +753,8 @@ export class JonahAdventureScene extends Phaser.Scene {
     this.time.delayedCall(90, () => this.tone(990, 1320, 0.16, "triangle", 0.06));
   }
 
-  private sfxHit() {
-    this.tone(200, 60, 0.3, "sawtooth", 0.09);
-  }
-
-  private sfxDie() {
-    this.tone(300, 50, 0.6, "sawtooth", 0.1);
-  }
-
-  private sfxThunder() {
-    this.tone(90, 35, 0.5, "sawtooth", 0.05);
+  private sfxSplash() {
+    this.tone(500, 180, 0.25, "sine", 0.07);
   }
 
   private sfxWin() {
@@ -725,11 +764,11 @@ export class JonahAdventureScene extends Phaser.Scene {
     this.time.delayedCall(480, () => this.tone(1047, 1047, 0.35, "triangle", 0.08));
   }
 
-  // ---- public API for the React wrapper ----
+  // ---- public API ----
 
-  startLevel(level: number) {
-    this.levelIndex = level;
-    this.scene.restart({ level });
+  startStage(stageId: number) {
+    this.stageId = stageId;
+    this.scene.restart({ stage: stageId });
   }
 
   setMuted(muted: boolean) {
