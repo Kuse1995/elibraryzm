@@ -30,6 +30,24 @@
     radial-gradient(900px 400px at 85% -10%, rgba(34, 211, 238, 0.28), transparent 60%),
     linear-gradient(180deg, #0c3a5c 0%, #116b8a 60%, #1b5e79 100%);
 }
+.scene-wordle {
+  background:
+    radial-gradient(900px 420px at 15% -10%, rgba(16, 185, 129, 0.35), transparent 60%),
+    radial-gradient(800px 400px at 88% 110%, rgba(34, 211, 238, 0.25), transparent 60%),
+    linear-gradient(165deg, #0b3b2e 0%, #0f5132 55%, #14532d 100%);
+}
+.scene-timeline {
+  background:
+    radial-gradient(900px 420px at 85% -10%, rgba(245, 158, 11, 0.32), transparent 60%),
+    radial-gradient(800px 400px at 12% 110%, rgba(249, 115, 22, 0.22), transparent 60%),
+    linear-gradient(165deg, #2a1605 0%, #54290d 55%, #713f12 100%);
+}
+.scene-memory {
+  background:
+    radial-gradient(900px 420px at 12% -10%, rgba(139, 92, 246, 0.38), transparent 60%),
+    radial-gradient(800px 400px at 90% 110%, rgba(34, 211, 238, 0.22), transparent 60%),
+    linear-gradient(165deg, #1e1b4b 0%, #312e81 55%, #4c1d95 100%);
+}
 
 /* --- Decorative layers --- */
 .scene-deco { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }

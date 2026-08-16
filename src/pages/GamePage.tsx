@@ -13,11 +13,17 @@ import VerseScramble from "@/games/games/VerseScramble";
 import ArkAdventure from "@/games/premium/ArkAdventure";
 import JonahAdventure from "@/games/premium/JonahAdventure";
 import BibleMerge from "@/games/premium/BibleMerge";
+import VerseWordle from "@/games/games/VerseWordle";
+import BibleTimeline from "@/games/games/BibleTimeline";
+import MemoryVerse from "@/games/games/MemoryVerse";
 
 const GAME_COMPONENTS: Record<string, ComponentType> = {
   "ark-adventure": ArkAdventure,
   "jonah-adventure": JonahAdventure,
   "bible-merge": BibleMerge,
+  "verse-wordle": VerseWordle,
+  "bible-timeline": BibleTimeline,
+  "memory-verse": MemoryVerse,
   "ark-pairs": ArkPairs,
   "fruit-garden": FruitGarden,
   "david-goliath": DavidGoliath,
@@ -88,6 +94,27 @@ const HELP: Record<string, React.ReactNode> = {
       <li>Each verse is shown with its words mixed up.</li>
       <li>Tap the words in the correct order, then check.</li>
       <li>First-try answers score the most points.</li>
+    </ul>
+  ),
+  "verse-wordle": (
+    <ul className="list-disc pl-5">
+      <li>Guess today's five-letter Bible word in six tries.</li>
+      <li>Green means right letter, right place - gold means right letter, wrong place.</li>
+      <li>Every answer unlocks a verse, and your daily streak is saved.</li>
+    </ul>
+  ),
+  "bible-timeline": (
+    <ul className="list-disc pl-5">
+      <li>Six Bible events per round, shown out of order.</li>
+      <li>Tap two events to swap them into true Bible order.</li>
+      <li>Check your order against the clock - wrong checks cost points.</li>
+    </ul>
+  ),
+  "memory-verse": (
+    <ul className="list-disc pl-5">
+      <li>Read a verse slowly, then the words start disappearing.</li>
+      <li>Type each missing word and press Enter.</li>
+      <li>Three rounds of recall - stars for accuracy, best scores saved.</li>
     </ul>
   ),
 };

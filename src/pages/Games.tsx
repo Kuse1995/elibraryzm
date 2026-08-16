@@ -110,7 +110,7 @@ export default function Games() {
           </h1>
           <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto mb-8">
             Beautifully-made Bible games for Zambian families — memory, trivia,
-            scripture and adventure, all rooted in God's Word.
+            scripture, word puzzles and adventure, all rooted in God's Word.
             Buy any ebook (from K15) and every game unlocks for you, free forever.
             Our premium adventures — Noah's Ark, Jonah & the Whale and Bible Merge — are included with All-Access — K10 a month or K100 a year.
           </p>
