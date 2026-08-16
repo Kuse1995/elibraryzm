@@ -172,11 +172,11 @@ export default function BibleTimeline() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <div className="mb-4 flex items-center justify-between text-sm font-semibold">
-        <span className="rounded-full bg-navy px-3 py-1 text-white">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-sm font-semibold">
+        <span className="min-w-0 rounded-full bg-navy px-3 py-1 text-white">
           Round {roundIdx + 1} of {ROUNDS_PER_GAME} — {round.title}
         </span>
-        <span className="flex items-center gap-2">
+        <span className="flex shrink-0 items-center gap-2">
           <span className="rounded-full bg-white/70 px-3 py-1 text-slate-700">⏱ {elapsed}s</span>
           <span className="rounded-full bg-secondary px-3 py-1 text-slate-700">Score {score}</span>
         </span>

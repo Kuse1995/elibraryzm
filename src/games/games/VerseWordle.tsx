@@ -242,7 +242,7 @@ export default function VerseWordle() {
                       <div
                         key={i}
                         className={
-                          "flex h-14 w-14 items-center justify-center rounded-lg border-2 text-2xl font-black uppercase " +
+                          "flex h-12 w-12 items-center justify-center rounded-lg border-2 text-xl font-black uppercase sm:h-14 sm:w-14 sm:text-2xl " +
                           tileClass(isActiveRow ? null : (rows[r]?.[i] ?? null), ch.trim() !== "")
                         }
                       >
@@ -254,17 +254,17 @@ export default function VerseWordle() {
               })}
             </div>
 
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1">
               {KEY_ROWS.map((row, ri) => (
-                <div key={ri} className="flex justify-center gap-1.5">
+                <div key={ri} className="flex justify-center gap-1">
                   {row.map((key) => (
                     <button
                       key={key}
                       onClick={() => pressKey(key)}
                       className={
-                        "rounded-md border px-0 py-2.5 text-sm font-bold transition-transform active:scale-95 " +
+                        "h-11 min-w-0 rounded-md border text-xs font-bold transition-transform active:scale-95 sm:text-sm " +
                         keyClass(key) +
-                        (key.length > 1 ? " flex-1 " : " w-8 flex-none ")
+                        (key.length > 1 ? " max-w-16 flex-[1.6] " : " max-w-10 flex-1 ")
                       }
                     >
                       {key === "BACK" ? "⌫" : key}

@@ -188,11 +188,11 @@ export default function MemoryVerse() {
       <div className="game-scene scene-memory text-white">
         <MemoryScene />
         <div className="relative mx-auto max-w-2xl px-4 py-10">
-          <div className="mb-4 flex items-center justify-between text-sm font-semibold">
-            <span className="rounded-full bg-navy px-3 py-1 text-white">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-sm font-semibold">
+            <span className="min-w-0 rounded-full bg-navy px-3 py-1 text-white">
               Round {stage} of 3 · {answered}/{hiddenIdx.length} words
             </span>
-            <span className="rounded-full bg-white/70 px-3 py-1 text-slate-700">{verse.reference}</span>
+            <span className="shrink-0 rounded-full bg-white/70 px-3 py-1 text-slate-700">{verse.reference}</span>
           </div>
 
           <div className="panel-scroll p-5 text-center">
@@ -250,9 +250,9 @@ export default function MemoryVerse() {
               placeholder={currentHint || "Type the missing word"}
               autoCapitalize="none"
               autoCorrect="off"
-              className="flex-1 rounded-xl border-2 border-white/30 bg-white/90 px-4 py-3 text-lg font-semibold text-slate-800 outline-none focus:border-accent"
+              className="min-w-0 flex-1 rounded-xl border-2 border-white/30 bg-white/90 px-4 py-3 text-lg font-semibold text-slate-800 outline-none focus:border-accent"
             />
-            <button onClick={submitWord} disabled={!stripWord(input)} className="btn-gold px-5 py-3 text-base">
+            <button onClick={submitWord} disabled={!stripWord(input)} className="btn-gold shrink-0 px-4 py-3 text-base sm:px-5">
               Enter ⏎
             </button>
           </div>
