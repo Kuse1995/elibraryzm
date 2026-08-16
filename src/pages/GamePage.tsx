@@ -12,10 +12,12 @@ import WhoAmI from "@/games/games/WhoAmI";
 import VerseScramble from "@/games/games/VerseScramble";
 import ArkAdventure from "@/games/premium/ArkAdventure";
 import JonahAdventure from "@/games/premium/JonahAdventure";
+import BibleMerge from "@/games/premium/BibleMerge";
 
 const GAME_COMPONENTS: Record<string, ComponentType> = {
   "ark-adventure": ArkAdventure,
   "jonah-adventure": JonahAdventure,
+  "bible-merge": BibleMerge,
   "ark-pairs": ArkPairs,
   "fruit-garden": FruitGarden,
   "david-goliath": DavidGoliath,
@@ -37,6 +39,13 @@ const HELP: Record<string, React.ReactNode> = {
       <li>Drag back on Jonah and release to fling him - the dotted trail shows where he'll fly.</li>
       <li>Collect the 3 ⭐ stars and land in the whale to finish each stage.</li>
       <li>Bounce pads launch you high, barrels roll, water makes you float - watch out for starfish! The Storm is free, The Belly and Nineveh unlock with All-Access.</li>
+    </ul>
+  ),
+  "bible-merge": (
+    <ul className="list-disc pl-5">
+      <li>Tap one item, then tap its match to grow it.</li>
+      <li>Seeds become sprouts, sprouts become plants - all the way to the rainbow.</li>
+      <li>No losing - just keep growing. The Garden is free, The Fields and The Promise unlock with All-Access.</li>
     </ul>
   ),
   "ark-pairs": (

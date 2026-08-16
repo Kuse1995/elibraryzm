@@ -112,7 +112,7 @@ export default function Games() {
             Beautifully-made Bible games for Zambian families — memory, trivia,
             scripture and adventure, all rooted in God's Word.
             Buy any ebook (from K15) and every game unlocks for you, free forever.
-            Our premium Noah's Ark Adventure is included with All-Access — K10 a month or K100 a year.
+            Our premium adventures — Noah's Ark, Jonah & the Whale and Bible Merge — are included with All-Access — K10 a month or K100 a year.
           </p>
           <div className="flex flex-wrap justify-center gap-3 text-sm">
             <span className="rounded-full bg-white/10 border border-white/20 px-4 py-2 backdrop-blur">🎮 {GAMES.length} games</span>

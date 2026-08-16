@@ -40,6 +40,18 @@ export const GAMES: GameMeta[] = [
     premium: true,
   },
   {
+    slug: "bible-merge",
+    title: "Bible Merge",
+    tagline: "Merge, grow, discover the rainbow",
+    description: "Our premium merge puzzle: match seeds to sprouts, sprouts to plants, and grow your way to the rainbow across 15 relaxing levels. The Garden is free - The Fields and The Promise unlock with All-Access.",
+    audience: "Kids",
+    difficulty: 1,
+    emoji: "🌱",
+    gradient: "from-lime-400 via-emerald-500 to-teal-700",
+    accent: "#34D399",
+    premium: true,
+  },
+  {
     slug: "ark-pairs",
     title: "Noah's Ark Pairs",
     tagline: "Memory match on the ark",
