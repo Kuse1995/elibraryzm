@@ -10,8 +10,10 @@ import DavidGoliath from "@/games/games/DavidGoliath";
 import BibleTrivia from "@/games/games/BibleTrivia";
 import WhoAmI from "@/games/games/WhoAmI";
 import VerseScramble from "@/games/games/VerseScramble";
+import ArkAdventure from "@/games/premium/ArkAdventure";
 
 const GAME_COMPONENTS: Record<string, ComponentType> = {
+  "ark-adventure": ArkAdventure,
   "ark-pairs": ArkPairs,
   "fruit-garden": FruitGarden,
   "david-goliath": DavidGoliath,
@@ -21,6 +23,13 @@ const GAME_COMPONENTS: Record<string, ComponentType> = {
 };
 
 const HELP: Record<string, React.ReactNode> = {
+  "ark-adventure": (
+    <ul className="list-disc pl-5">
+      <li>Tap to jump - and tap again in the air for a double jump.</li>
+      <li>Collect every animal Noah needs for the ark.</li>
+      <li>Dodge the rocks and logs. Three hearts, three levels - Level 1 is free for everyone.</li>
+    </ul>
+  ),
   "ark-pairs": (
     <ul className="list-disc pl-5">
       <li>Flip two cards at a time to find matching animal pairs.</li>
@@ -75,7 +84,8 @@ export default function GamePage() {
   if (loading) {
     return <div className="container py-16 text-center text-muted-foreground">Loading your games…</div>;
   }
-  if (!unlocked) {
+  // Premium games run their own model: Level 1 is a free demo, full game needs All-Access.
+  if (!meta.premium && !unlocked) {
     return <GameUnlock title={meta.title} emoji={meta.emoji} />;
   }
   return (

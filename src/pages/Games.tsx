@@ -37,8 +37,13 @@ function GameCard({ game }: { game: GameMeta }) {
       </div>
       <div className="flex flex-1 flex-col p-5">
         <div className="mb-2 flex items-center justify-between gap-2">
-          <span className={"rounded-full px-2.5 py-0.5 text-xs font-semibold " + AUDIENCE_STYLES[game.audience]}>
-            {game.audience}
+          <span className="flex items-center gap-1.5">
+            {game.premium && (
+              <span className="rounded-full bg-amber-400 px-2.5 py-0.5 text-xs font-bold text-amber-950">PREMIUM</span>
+            )}
+            <span className={"rounded-full px-2.5 py-0.5 text-xs font-semibold " + AUDIENCE_STYLES[game.audience]}>
+              {game.audience}
+            </span>
           </span>
           <DifficultyDots level={game.difficulty} />
         </div>
@@ -97,16 +102,17 @@ export default function Games() {
         <div className="container relative py-16 md:py-24 text-center">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-4 py-1.5 text-sm mb-6 backdrop-blur">
             <Sparkles className="h-4 w-4 text-amber-300" />
-            <span>FREE for every reader · unlocked with any purchase</span>
+            <span>Free to start · unlocked with any purchase or All-Access</span>
           </div>
           <h1 className="font-display text-4xl md:text-6xl font-bold mb-5 leading-tight drop-shadow-lg">
             Play. Learn.<br />
             <span className="bg-gradient-to-r from-amber-200 via-amber-400 to-orange-300 bg-clip-text text-transparent">Grow in Faith.</span>
           </h1>
           <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto mb-8">
-            Six beautifully-made Bible games for Zambian families — memory, trivia,
+            Beautifully-made Bible games for Zambian families — memory, trivia,
             scripture and adventure, all rooted in God's Word.
             Buy any ebook (from K15) and every game unlocks for you, free forever.
+            Our premium Noah's Ark Adventure is included with All-Access — K10 a month or K100 a year.
           </p>
           <div className="flex flex-wrap justify-center gap-3 text-sm">
             <span className="rounded-full bg-white/10 border border-white/20 px-4 py-2 backdrop-blur">🎮 {GAMES.length} games</span>

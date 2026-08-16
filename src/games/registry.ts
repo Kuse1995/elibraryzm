@@ -10,9 +10,23 @@ export interface GameMeta {
   emoji: string;
   gradient: string;
   accent: string;
+  /** Premium games: Level 1 is a free demo for everyone, the rest unlocks with All-Access. */
+  premium?: boolean;
 }
 
 export const GAMES: GameMeta[] = [
+  {
+    slug: "ark-adventure",
+    title: "Noah's Ark Adventure",
+    tagline: "Run, jump and save the animals",
+    description: "Our premium adventure: gather every animal pair, brave the storm and outrun the flood. Level 1 is free for everyone - the full journey unlocks with All-Access.",
+    audience: "Kids",
+    difficulty: 2,
+    emoji: "🌈",
+    gradient: "from-cyan-400 via-sky-500 to-blue-700",
+    accent: "#22D3EE",
+    premium: true,
+  },
   {
     slug: "ark-pairs",
     title: "Noah's Ark Pairs",
