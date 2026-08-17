@@ -183,7 +183,7 @@ export default function ArkAdventure() {
       className="relative mx-auto w-full max-w-[400px] overflow-hidden rounded-2xl bg-[#10233d]"
       style={{ aspectRatio: "480 / 800" }}
     >
-      <div ref={parentRef} className="absolute inset-0" />
+      <div ref={parentRef} className="absolute inset-0" style={{ touchAction: "none" }} />
 
       {screen === "play" && (
         <button

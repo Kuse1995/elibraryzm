@@ -184,7 +184,7 @@ export default function JonahAdventure() {
         className="relative w-full max-w-[400px] overflow-hidden rounded-3xl border bg-[#17556e] shadow-2xl"
         style={{ aspectRatio: "480 / 800" }}
       >
-        <div ref={parentRef} className="absolute inset-0" />
+        <div ref={parentRef} className="absolute inset-0" style={{ touchAction: "none" }} />
 
         {screen === "boot" && (
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-[#17556e]">

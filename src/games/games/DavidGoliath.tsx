@@ -17,9 +17,9 @@ interface Level {
 }
 
 const LEVELS: Level[] = [
-  { id: "easy", label: "The Valley", speed: 0.5, range: 85, stones: 5, hitRadius: 56 },
-  { id: "medium", label: "The Hills", speed: 1.0, range: 65, stones: 5, hitRadius: 48 },
-  { id: "hard", label: "The Battle Line", speed: 1.7, range: 50, stones: 4, hitRadius: 40 },
+  { id: "easy", label: "The Valley", speed: 0.5, range: 85, stones: 5, hitRadius: 64 },
+  { id: "medium", label: "The Hills", speed: 1.0, range: 65, stones: 5, hitRadius: 56 },
+  { id: "hard", label: "The Battle Line", speed: 1.7, range: 50, stones: 4, hitRadius: 48 },
 ];
 
 const TAUNTS = [
@@ -141,31 +141,17 @@ export default function DavidGoliath() {
     return () => cancelAnimationFrame(raf);
   }, [phase, level, hits, record]);
 
-  const aimFromEvent = (e: React.PointerEvent) => {
+  const aimFromPoint = (clientX: number, clientY: number) => {
     const rect = sceneRef.current?.getBoundingClientRect();
     if (!rect) return { x: 0, y: 0 };
     const scale = W / rect.width;
-    return { x: (e.clientX - rect.left) * scale, y: (e.clientY - rect.top) * scale };
+    return { x: (clientX - rect.left) * scale, y: (clientY - rect.top) * scale };
   };
 
-  const onDown = (e: React.PointerEvent) => {
-    if (phase !== "aim" || !level) return;
-    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-    const p = aimFromEvent(e);
-    dragRef.current = p;
-    lastPointRef.current = p;
-    setDragPoint(p);
-  };
-
-  const onMove = (e: React.PointerEvent) => {
-    if (!dragRef.current || phase !== "aim") return;
-    const p = aimFromEvent(e);
-    lastPointRef.current = p;
-    setDragPoint(p);
+  const previewTrail = (p: { x: number; y: number }) => {
     const pull = Math.min(220, Math.hypot(p.x - 150, p.y - 240));
-    const dirX = p.x - 150 < 0 ? 1 : -1;
-    const vx = dirX * pull * 0.16;
-    const vy = -pull * 0.14;
+    const vx = pull * 0.13;
+    const vy = -pull * 0.045;
     const preview: Stone[] = [];
     for (let i = 1; i <= 14; i++) {
       const t = i * 2.2;
@@ -174,20 +160,61 @@ export default function DavidGoliath() {
     setTrail(preview);
   };
 
-  const onUp = () => {
-    if (!dragRef.current || phase !== "aim" || !level) return;
+  // Drag tracking lives on window so a finger dragged past the scene edge
+  // keeps aiming and releases only on the real pointerup, wherever it lands.
+  const winHandlersRef = useRef<{ move: (e: PointerEvent) => void; up: () => void; cancel: () => void } | null>(null);
+
+  const endDrag = (fire: boolean) => {
+    const h = winHandlersRef.current;
+    if (h) {
+      window.removeEventListener("pointermove", h.move);
+      window.removeEventListener("pointerup", h.up);
+      window.removeEventListener("pointercancel", h.cancel);
+      winHandlersRef.current = null;
+    }
     const p = lastPointRef.current || dragRef.current;
     dragRef.current = null;
     lastPointRef.current = null;
     setDragPoint(null);
+    setTrail([]);
+    if (!fire || !p || phase !== "aim" || !level) return;
     const sx = 150;
     const sy = 240;
     const pull = Math.min(220, Math.hypot(p.x - sx, p.y - sy));
-    const dirX = p.x - sx < 0 ? 1 : -1;
-    flightRef.current = { x0: sx, y0: sy, vx: dirX * pull * 0.16, vy: -pull * 0.14 };
-    setTrail([]);
+    flightRef.current = { x0: sx, y0: sy, vx: pull * 0.13, vy: -pull * 0.045 };
     setPhase("fly");
     sound.play("whoosh");
+  };
+
+  useEffect(() => {
+    return () => {
+      const h = winHandlersRef.current;
+      if (h) {
+        window.removeEventListener("pointermove", h.move);
+        window.removeEventListener("pointerup", h.up);
+        window.removeEventListener("pointercancel", h.cancel);
+      }
+    };
+  }, []);
+
+  const onDown = (e: React.PointerEvent) => {
+    if (phase !== "aim" || !level || winHandlersRef.current) return;
+    const p = aimFromPoint(e.clientX, e.clientY);
+    dragRef.current = p;
+    lastPointRef.current = p;
+    setDragPoint(p);
+    const move = (ev: PointerEvent) => {
+      const pt = aimFromPoint(ev.clientX, ev.clientY);
+      lastPointRef.current = pt;
+      setDragPoint(pt);
+      previewTrail(pt);
+    };
+    const up = () => endDrag(true);
+    const cancel = () => endDrag(false);
+    winHandlersRef.current = { move, up, cancel };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", cancel);
   };
 
   if (!level) {
@@ -224,9 +251,6 @@ export default function DavidGoliath() {
         className="relative w-full overflow-hidden rounded-2xl border shadow-lg select-none"
         style={{ aspectRatio: `${W}/${H}`, touchAction: "none", cursor: phase === "aim" ? "crosshair" : "default" }}
         onPointerDown={onDown}
-        onPointerMove={onMove}
-        onPointerUp={onUp}
-        onPointerLeave={onUp}
       >
         <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 w-full h-full">
           <defs>
