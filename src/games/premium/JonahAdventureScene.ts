@@ -233,6 +233,7 @@ export class JonahAdventureScene extends Phaser.Scene {
 
   private dragStart = new Phaser.Math.Vector2();
   private dragging = false;
+  private dragPointerId = -1;
   private dots: Phaser.GameObjects.Arc[] = [];
 
   private barrels: Phaser.Physics.Arcade.Group | null = null;
@@ -552,18 +553,21 @@ export class JonahAdventureScene extends Phaser.Scene {
 
   private buildInput() {
     this.input.on("pointerdown", (p: Phaser.Input.Pointer) => {
+      if (this.dragging) return; // a second finger mid-pull must not re-anchor the drag
+      this.dragPointerId = p.id;
       this.dragStart.set(p.x, p.y);
       this.dragging = true;
       this.buildDots();
       this.placeDots(this.dragStart, this.dragStart);
     });
     this.input.on("pointermove", (p: Phaser.Input.Pointer) => {
-      if (!this.dragging) return;
+      if (!this.dragging || p.id !== this.dragPointerId) return;
       this.placeDots(this.dragStart, new Phaser.Math.Vector2(p.x, p.y));
     });
     this.input.on("pointerup", (p: Phaser.Input.Pointer) => {
-      if (!this.dragging) return;
+      if (!this.dragging || p.id !== this.dragPointerId) return;
       this.dragging = false;
+      this.dragPointerId = -1;
       this.hideDots();
       const vec = new Phaser.Math.Vector2(this.dragStart.x - p.x, this.dragStart.y - p.y);
       const len = vec.length();
@@ -575,8 +579,10 @@ export class JonahAdventureScene extends Phaser.Scene {
       this.sfxFling();
       this.stretchFx();
     });
-    this.input.on("pointerupoutside", () => {
+    this.input.on("pointerupoutside", (p: Phaser.Input.Pointer) => {
+      if (p.id !== this.dragPointerId) return;
       this.dragging = false;
+      this.dragPointerId = -1;
       this.hideDots();
     });
   }
@@ -644,6 +650,8 @@ export class JonahAdventureScene extends Phaser.Scene {
     this.jonahBody.setVelocity(0, 0);
     this.jonahBody.reset(this.startX, this.startY);
     this.idle = true;
+    this.tweens.killTweensOf(this.jonah);
+    this.jonah.setScale(1, 1);
     if (animate) {
       this.splashBurst(this.startX, this.startY);
       this.sfxSplash();
@@ -654,6 +662,8 @@ export class JonahAdventureScene extends Phaser.Scene {
   // ---- juice ----
 
   private stretchFx() {
+    this.tweens.killTweensOf(this.jonah);
+    this.jonah.setScale(1, 1);
     this.tweens.add({ targets: this.jonah, scaleX: 1.25, scaleY: 0.8, yoyo: true, duration: 150 });
   }
 

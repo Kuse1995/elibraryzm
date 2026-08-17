@@ -363,7 +363,7 @@ export default function ArkAdventure() {
 
       {screen === "play" && (
         <p className="px-4 py-2 text-center text-xs text-muted-foreground bg-card">
-          Tap to jump · tap again in the air for a double jump · collect animals, dodge rocks · grab 🛡️ 🧲 ⏳ power-ups
+          Slide (or ◀ ▶ / A-D) to move · tap to jump · tap again in the air for a double jump · collect animals, dodge rocks · grab 🛡️ 🧲 ⏳ power-ups
         </p>
       )}
     </div>

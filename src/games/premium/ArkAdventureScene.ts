@@ -140,6 +140,9 @@ export class ArkAdventureScene extends Phaser.Scene {
   private elapsed = 0;
   private worldSpeed = 0;
   private targetSpeed = 0;
+  private steerX: number | null = null;
+  private keysCursors?: Phaser.Types.Input.Keyboard.CursorKeys;
+  private keysAD?: Record<string, Phaser.Input.Keyboard.Key>;
   private audio?: AudioContext;
 
   constructor(cbs: ArkAdventureCallbacks) {
@@ -195,8 +198,15 @@ export class ArkAdventureScene extends Phaser.Scene {
       callback: () => this.spawnItem(),
     });
 
-    this.input.on("pointerdown", () => this.tryJump());
+    this.input.on("pointerdown", (p: Phaser.Input.Pointer) => {
+      this.steerX = p.x;
+      this.tryJump();
+    });
+    this.input.on("pointermove", (p: Phaser.Input.Pointer) => {
+      if (p.isDown) this.steerX = p.x;
+    });
     this.input.on("pointerup", () => {
+      this.steerX = null;
       // Variable jump height: only cut the arc when the tap was held down.
       if (this.time.now - this.jumpStartTime < 100) return;
       const b = this.noah.body as Phaser.Physics.Arcade.Body;
@@ -205,6 +215,8 @@ export class ArkAdventureScene extends Phaser.Scene {
     this.input.keyboard?.on("keydown-SPACE", () => this.tryJump());
     this.input.keyboard?.on("keydown-UP", () => this.tryJump());
     this.input.keyboard?.on("keydown-W", () => this.tryJump());
+    this.keysCursors = this.input.keyboard?.createCursorKeys();
+    this.keysAD = this.input.keyboard?.addKeys("A,D") as Record<string, Phaser.Input.Keyboard.Key>;
 
     this.cbs.onReady();
   }
@@ -264,6 +276,18 @@ export class ArkAdventureScene extends Phaser.Scene {
     const shScale = Math.max(0.35, 1 - airHeight / 420);
     this.shadow.setScale(shScale, shScale);
     this.shadow.setAlpha(0.25 * shScale);
+
+    // horizontal control: slide on touch, arrows / A-D on keyboard
+    if (!this.dead && !this.finished) {
+      const b = this.noah.body as Phaser.Physics.Arcade.Body;
+      const left = this.keysCursors?.left.isDown || this.keysAD?.A.isDown;
+      const right = this.keysCursors?.right.isDown || this.keysAD?.D.isDown;
+      let vx = 0;
+      if (left) vx = -320;
+      else if (right) vx = 320;
+      else if (this.steerX !== null) vx = Phaser.Math.Clamp((this.steerX - this.noah.x) * 7, -460, 460);
+      b.setVelocityX(vx);
+    }
 
     this.updateFlood(dt);
   }
@@ -335,6 +359,8 @@ export class ArkAdventureScene extends Phaser.Scene {
     const body = c.body as Phaser.Physics.Arcade.Body;
     body.setSize(40, 78);
     body.setOffset(-20, -39);
+    // side walls via world bounds (jumps never reach the top edge)
+    body.setCollideWorldBounds(true);
     return c;
   }
 
@@ -455,7 +481,7 @@ export class ArkAdventureScene extends Phaser.Scene {
 
   private showIntro() {
     const intro = this.add
-      .text(W / 2, H * 0.42, `Level ${this.levelIndex} — ${this.def.name}\n${this.def.subtitle}`, {
+      .text(W / 2, H * 0.42, `Level ${this.levelIndex} — ${this.def.name}\n${this.def.subtitle}\nSlide or ◀ ▶ to move · tap to jump`, {
         fontSize: "34px",
         color: "#ffffff",
         stroke: "#000000aa",
