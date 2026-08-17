@@ -137,4 +137,70 @@ export const CHARACTERS: Character[] = [
       "God took me up to heaven in a whirlwind.",
     ],
   },
+  {
+    name: "Ruth",
+    emoji: "🌾",
+    hints: [
+      "I was from the country of Moab.",
+      "I chose to stay with my mother-in-law Naomi.",
+      "I said, 'Your people shall be my people.'",
+      "I gathered grain in the fields of Boaz.",
+      "I became the great-grandmother of King David.",
+    ],
+  },
+  {
+    name: "Esther",
+    emoji: "👑",
+    hints: [
+      "I was a Jewish orphan raised by my cousin Mordecai.",
+      "I became queen of Persia.",
+      "I risked my life by going to the king uninvited.",
+      "I exposed the wicked Haman's plot.",
+      "I saved my people from destruction.",
+    ],
+  },
+  {
+    name: "Daniel",
+    emoji: "🦁",
+    hints: [
+      "I was taken as a young man to Babylon.",
+      "I refused the king's rich food.",
+      "God gave me the meaning of the king's dreams.",
+      "My friends and I would not bow to a golden image.",
+      "God shut the mouths of lions to save me.",
+    ],
+  },
+  {
+    name: "Samuel",
+    emoji: "🕯️",
+    hints: [
+      "My mother Hannah prayed for me at the temple.",
+      "I served the Lord under Eli the priest.",
+      "As a boy, I heard God call my name at night.",
+      "I grew up to be a prophet of Israel.",
+      "I anointed both Saul and David as kings.",
+    ],
+  },
+  {
+    name: "Joshua",
+    emoji: "📯",
+    hints: [
+      "I was Moses' assistant since my youth.",
+      "I was one of two faithful spies in Canaan.",
+      "I succeeded Moses as leader of Israel.",
+      "I led the people across the Jordan River.",
+      "I commanded the sun to stand still at Gibeon.",
+    ],
+  },
+  {
+    name: "Paul",
+    emoji: "✉️",
+    hints: [
+      "I first persecuted the church fiercely.",
+      "A bright light stopped me on a road to Damascus.",
+      "I spent three days blind before I was healed.",
+      "I travelled far to preach about Jesus.",
+      "I wrote many letters that became Bible books.",
+    ],
+  },
 ];

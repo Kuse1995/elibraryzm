@@ -52,4 +52,48 @@ export const MEMORY_VERSES: MemoryVerse[] = [
     reference: "Matthew 6:33",
     text: "But seek first the kingdom of God and his righteousness, and all these things will be added to you.",
   },
+  {
+    reference: "Romans 3:23",
+    text: "For all have sinned and fall short of the glory of God.",
+  },
+  {
+    reference: "Ephesians 2:8",
+    text: "For by grace you have been saved through faith. And this is not your own doing; it is the gift of God.",
+  },
+  {
+    reference: "Psalm 46:1",
+    text: "God is our refuge and strength, a very present help in trouble.",
+  },
+  {
+    reference: "Isaiah 40:31",
+    text: "But they who wait for the Lord shall renew their strength; they shall mount up with wings like eagles.",
+  },
+  {
+    reference: "Matthew 11:28",
+    text: "Come to me, all who labor and are heavy laden, and I will give you rest.",
+  },
+  {
+    reference: "John 1:1",
+    text: "In the beginning was the Word, and the Word was with God, and the Word was God.",
+  },
+  {
+    reference: "Proverbs 16:3",
+    text: "Commit your work to the Lord, and your plans will be established.",
+  },
+  {
+    reference: "1 John 1:9",
+    text: "If we confess our sins, he is faithful and just to forgive us our sins and to cleanse us from all unrighteousness.",
+  },
+  {
+    reference: "Philippians 4:6",
+    text: "Do not be anxious about anything, but in everything by prayer and supplication with thanksgiving let your requests be made known to God.",
+  },
+  {
+    reference: "Colossians 3:23",
+    text: "Whatever you do, work heartily, as for the Lord and not for men.",
+  },
+  {
+    reference: "2 Timothy 1:7",
+    text: "For God gave us a spirit not of fear but of power and love and self-control.",
+  },
 ];

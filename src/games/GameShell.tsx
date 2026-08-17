@@ -17,7 +17,10 @@ export default function GameShell({ title, emoji, children, onRestart, instructi
   const [showHelp, setShowHelp] = useState(false);
 
   return (
-    <div className="min-h-[70vh]">
+    <div
+      className="min-h-[70vh] select-none"
+      style={{ WebkitTapHighlightColor: "transparent" }}
+    >
       <div className="sticky top-16 z-40 border-b border-white/10 bg-gradient-to-r from-[#12294d] to-[#1d4a80] text-white shadow-lg">
         <div className="container flex h-14 items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">

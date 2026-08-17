@@ -21,6 +21,17 @@ export const TIMELINE_ROUNDS: TimelineRound[] = [
     ],
   },
   {
+    title: "The Patriarchs",
+    events: [
+      { text: "Abraham entertains three visitors at Mamre", ref: "Genesis 18:1" },
+      { text: "God promises Abraham a son named Isaac", ref: "Genesis 18:10" },
+      { text: "Isaac is born to Sarah in old age", ref: "Genesis 21:2" },
+      { text: "A bride, Rebekah, is found for Isaac", ref: "Genesis 24:61" },
+      { text: "Jacob receives Isaac's blessing", ref: "Genesis 27:27" },
+      { text: "Jacob wrestles with God at Peniel", ref: "Genesis 32:24" },
+    ],
+  },
+  {
     title: "Exodus",
     events: [
       { text: "Moses is found in a basket", ref: "Exodus 2:5" },
@@ -29,6 +40,17 @@ export const TIMELINE_ROUNDS: TimelineRound[] = [
       { text: "Israel crosses the Red Sea", ref: "Exodus 14:22" },
       { text: "The Ten Commandments are given at Sinai", ref: "Exodus 20:1" },
       { text: "Israel wanders forty years in the wilderness", ref: "Numbers 14:33" },
+    ],
+  },
+  {
+    title: "The Promised Land",
+    events: [
+      { text: "Moses views the land from Mount Nebo", ref: "Deuteronomy 34:1" },
+      { text: "Joshua sends spies into Jericho", ref: "Joshua 2:1" },
+      { text: "Israel crosses the Jordan on dry ground", ref: "Joshua 3:14" },
+      { text: "The walls of Jericho fall", ref: "Joshua 6:20" },
+      { text: "The sun stands still at Gibeon", ref: "Joshua 10:13" },
+      { text: "The land is divided among the tribes", ref: "Joshua 14:5" },
     ],
   },
   {
@@ -43,6 +65,17 @@ export const TIMELINE_ROUNDS: TimelineRound[] = [
     ],
   },
   {
+    title: "The Divided Kingdom",
+    events: [
+      { text: "The kingdom divides under Rehoboam", ref: "1 Kings 12:16" },
+      { text: "Jeroboam sets up golden calves", ref: "1 Kings 12:28" },
+      { text: "Asa does what is right in Judah", ref: "1 Kings 15:11" },
+      { text: "Ahab and Jezebel promote Baal worship", ref: "1 Kings 16:30" },
+      { text: "Elijah announces a great drought", ref: "1 Kings 17:1" },
+      { text: "Micaiah foretells Ahab's defeat", ref: "1 Kings 22:8" },
+    ],
+  },
+  {
     title: "The Prophets",
     events: [
       { text: "Elijah is fed by ravens", ref: "1 Kings 17:6" },
@@ -51,6 +84,17 @@ export const TIMELINE_ROUNDS: TimelineRound[] = [
       { text: "Isaiah sees the Lord in the temple", ref: "Isaiah 6:1" },
       { text: "Jeremiah is called to speak God's word", ref: "Jeremiah 1:4" },
       { text: "Daniel survives the lions' den", ref: "Daniel 6:22" },
+    ],
+  },
+  {
+    title: "Exile & Return",
+    events: [
+      { text: "Shadrach, Meshach and Abednego survive the furnace", ref: "Daniel 3:25" },
+      { text: "Jerusalem falls and Judah is exiled", ref: "2 Kings 25:11" },
+      { text: "Daniel reads the writing on the wall", ref: "Daniel 5:5" },
+      { text: "Cyrus decrees that the exiles may return", ref: "Ezra 1:1" },
+      { text: "The temple foundation is rebuilt", ref: "Ezra 3:10" },
+      { text: "Nehemiah rebuilds Jerusalem's walls", ref: "Nehemiah 6:15" },
     ],
   },
   {
@@ -73,6 +117,17 @@ export const TIMELINE_ROUNDS: TimelineRound[] = [
       { text: "Jesus preaches the Sermon on the Mount", ref: "Matthew 5:1" },
       { text: "Five thousand are fed", ref: "John 6:11" },
       { text: "Jesus is transfigured on the mountain", ref: "Matthew 17:2" },
+    ],
+  },
+  {
+    title: "Miracles of Jesus",
+    events: [
+      { text: "Jesus cleanses a leper", ref: "Matthew 8:3" },
+      { text: "A paralytic is lowered through the roof and healed", ref: "Mark 2:4" },
+      { text: "Jesus raises Jairus' daughter", ref: "Mark 5:41" },
+      { text: "Jesus heals a man born blind", ref: "John 9:7" },
+      { text: "Jesus raises Lazarus from the dead", ref: "John 11:43" },
+      { text: "The temple curtain tears when Jesus dies", ref: "Matthew 27:51" },
     ],
   },
   {
@@ -106,6 +161,17 @@ export const TIMELINE_ROUNDS: TimelineRound[] = [
       { text: "Paul preaches at the Areopagus in Athens", ref: "Acts 17:22" },
       { text: "Paul is arrested in Jerusalem", ref: "Acts 21:33" },
       { text: "Paul is shipwrecked on the way to Rome", ref: "Acts 27:41" },
+    ],
+  },
+  {
+    title: "The Church Grows",
+    events: [
+      { text: "Barnabas encourages the believers in Antioch", ref: "Acts 11:23" },
+      { text: "Peter is freed from prison by an angel", ref: "Acts 12:7" },
+      { text: "Paul heals a lame man in Lystra", ref: "Acts 14:10" },
+      { text: "Paul and Silas sing in prison at Philippi", ref: "Acts 16:25" },
+      { text: "Paul raises Eutychus in Troas", ref: "Acts 20:10" },
+      { text: "Paul preaches boldly in Rome", ref: "Acts 28:30" },
     ],
   },
 ];
