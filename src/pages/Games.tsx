@@ -102,7 +102,7 @@ export default function Games() {
         <div className="container relative py-16 md:py-24 text-center">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-4 py-1.5 text-sm mb-6 backdrop-blur">
             <Sparkles className="h-4 w-4 text-amber-300" />
-            <span>Free to start · unlocked with any purchase or All-Access</span>
+            <span>100% free · every game, every level</span>
           </div>
           <h1 className="font-display text-4xl md:text-6xl font-bold mb-5 leading-tight drop-shadow-lg">
             Play. Learn.<br />
@@ -111,8 +111,8 @@ export default function Games() {
           <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto mb-8">
             Beautifully-made Bible games for Zambian families — memory, trivia,
             scripture, word puzzles and adventure, all rooted in God's Word.
-            Buy any ebook (from K15) and every game unlocks for you, free forever.
-            Our premium adventures — Noah's Ark, Jonah & the Whale and Bible Merge — are included with All-Access — K10 a month or K100 a year.
+            Every game is completely free — including the full adventures
+            Noah's Ark, Jonah & the Whale and Bible Merge.
           </p>
           <div className="flex flex-wrap justify-center gap-3 text-sm">
             <span className="rounded-full bg-white/10 border border-white/20 px-4 py-2 backdrop-blur">🎮 {GAMES.length} games</span>

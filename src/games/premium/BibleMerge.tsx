@@ -258,13 +258,11 @@ export default function BibleMerge() {
               <div className="mb-1 text-5xl">🌻</div>
               <h2 className="font-display text-2xl font-bold">Well done, gardener!</h2>
               <p className="mb-4 mt-2 text-sm leading-relaxed text-muted-foreground">
-                You finished <span className="font-semibold text-foreground">The Garden</span> — all 5 free
-                levels. The Fields and The Promise, 10 more levels up to the rainbow, unlock with All-Access.
+                You finished <span className="font-semibold text-foreground">The Garden</span> — all 5
+                levels. The Fields and The Promise, 10 more levels up to the rainbow, are free too.
               </p>
               <div className="flex flex-col gap-2">
-                <Link to="/all-access">
-                  <Button className="w-full">Unlock with All-Access — K10/month or K100/year</Button>
-                </Link>
+                <Button className="w-full" onClick={() => setScreen("play")}>Keep Playing — it's free</Button>
                 {!user && (
                   <Link to="/auth?redirect=/games/bible-merge">
                     <Button variant="outline" className="w-full">
@@ -322,11 +320,7 @@ export default function BibleMerge() {
             <div className="mb-5 rounded-2xl border bg-card p-4 text-sm">
               <p className="font-semibold">The Garden is free — all 5 levels.</p>
               <p className="text-muted-foreground">
-                The Fields and The Promise unlock with All-Access —{" "}
-                <Link to="/all-access" className="font-semibold text-accent underline">
-                  K10/month or K100/year
-                </Link>
-                .
+                The Fields and The Promise are free too — every world is free.
               </p>
             </div>
           )}

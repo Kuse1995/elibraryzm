@@ -1,67 +1,19 @@
-﻿import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-
-const STORAGE_KEY = "elibrary_games_unlocked";
+﻿import { useCallback, useState } from "react";
 
 /**
- * Games are a free, forever perk for readers who bought a book.
- * - Signed-in buyers: grant is bound to their account (checked via SQL RPC).
- * - WhatsApp/guest buyers: unlock once with the phone number they ordered with;
- *   the pass binds to their account if they are signed in, and a local flag
- *   keeps them unlocked on this device.
+ * 2026-08-18: books and games are FREE for everyone (Abraham's call - we don't
+ * charge for the gospel). The purchase/phone-claim unlock wall is retired;
+ * every game is playable. The RPC + game_access table stay in the database
+ * for history, but nothing is gated on them anymore.
  */
 export function useGameAccess() {
-  const { user } = useAuth();
-  const [unlocked, setUnlocked] = useState<boolean>(
-    () => typeof localStorage !== "undefined" && localStorage.getItem(STORAGE_KEY) === "1"
-  );
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        if (localStorage.getItem(STORAGE_KEY) === "1") {
-          setUnlocked(true);
-          setLoading(false);
-          return;
-        }
-        if (!user) {
-          setUnlocked(false);
-          setLoading(false);
-          return;
-        }
-        const { data: raw } = await supabase.rpc("game_access_check", { p_mode: "me" });
-        const data = raw as { granted?: boolean; reason?: string } | null;
-        if (!alive) return;
-        if (data?.granted) {
-          localStorage.setItem(STORAGE_KEY, "1");
-          setUnlocked(true);
-        } else {
-          setUnlocked(false);
-        }
-      } catch {
-        if (alive) setUnlocked(false);
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [user]);
+  const [unlocked, setUnlocked] = useState<boolean>(true);
+  const [loading, setLoading] = useState(false);
 
   const claim = useCallback(
-    async (phone: string): Promise<{ ok: boolean; reason?: string }> => {
-      const { data: raw, error } = await supabase.rpc("game_access_check", { p_mode: "phone", p_phone: phone });
-      const data = raw as { granted?: boolean; reason?: string } | null;
-      if (!error && data?.granted) {
-        localStorage.setItem(STORAGE_KEY, "1");
-        setUnlocked(true);
-        return { ok: true };
-      }
-      return { ok: false, reason: data?.reason || "unlock_failed" };
+    async (_phone: string): Promise<{ ok: boolean; reason?: string }> => {
+      setUnlocked(true);
+      return { ok: true };
     },
     []
   );

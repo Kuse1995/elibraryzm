@@ -26,7 +26,7 @@ export default function GameUnlock({ title, emoji }: { title?: string; emoji?: s
       setDone(true);
     } else if (res.reason === "no_pass") {
       setError(
-        "We could not find a games pass for that number. Did you order with a different number? Or buy any ebook (from K15) and your games unlock instantly."
+        "Every game is free now - just reload the games page and play. No pass needed anymore."
       );
     } else {
       setError("Could not check your number just now - please try again in a moment.");
@@ -62,8 +62,8 @@ export default function GameUnlock({ title, emoji }: { title?: string; emoji?: s
           </h1>
           <p className="text-white/85 max-w-xl mx-auto">
             {title
-              ? "This game is FREE for every reader - unlock it in seconds."
-              : "Every book purchase unlocks all six Bible games forever."}
+              ? "This game is completely free - unlock it in seconds."
+              : "All our Bible games are free for everyone, forever."}
           </p>
         </div>
         <div className="p-8 md:p-10">
@@ -97,10 +97,10 @@ export default function GameUnlock({ title, emoji }: { title?: string; emoji?: s
 
           <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
-              <Lock className="h-4 w-4" /> Haven't bought yet?
+              <Lock className="h-4 w-4" /> Everything is free now
             </span>
             <Link to="/browse" className="font-semibold text-accent hover:underline inline-flex items-center gap-1">
-              <BookOpen className="h-4 w-4" /> Browse ebooks from K15
+              <BookOpen className="h-4 w-4" /> Browse free ebooks
             </Link>
             {!user && (
               <>

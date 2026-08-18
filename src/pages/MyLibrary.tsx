@@ -1,15 +1,13 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Download, Sparkles, CheckCircle2 } from "lucide-react";
+import { BookOpen, Download, CheckCircle2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
-import { useReaderSubscription } from "@/hooks/useReaderSubscription";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 const MyLibrary = () => {
   const { user } = useAuth();
-  const { isActive, expiresAt, daysLeft } = useReaderSubscription();
 
   const { data: purchases = [], isLoading } = useQuery({
     queryKey: ["my-purchases", user?.id],
@@ -44,7 +42,7 @@ const MyLibrary = () => {
       <div className="container py-20 text-center">
         <BookOpen className="h-16 w-16 text-muted-foreground/40 mx-auto mb-4" />
         <h1 className="font-display text-2xl font-bold mb-2">Sign In Required</h1>
-        <p className="text-muted-foreground mb-6">Please sign in to view your purchased ebooks.</p>
+        <p className="text-muted-foreground mb-6">Please sign in to view your ebook history.</p>
         <Link to="/auth"><Button className="bg-accent text-accent-foreground hover:bg-accent/90">Sign In</Button></Link>
       </div>
     );
@@ -53,30 +51,23 @@ const MyLibrary = () => {
   return (
     <div className="container py-10">
       <h1 className="font-display text-3xl font-bold mb-2">My Library</h1>
-      <p className="text-muted-foreground mb-8">Your purchased ebooks — download anytime.</p>
+      <p className="text-muted-foreground mb-8">Your ebook history — download anytime.</p>
 
       <Card className="mb-8 border-accent/30">
         <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-5">
           <div className="flex items-start gap-3">
-            {isActive ? (
-              <CheckCircle2 className="h-8 w-8 text-green-600 shrink-0 mt-0.5" />
-            ) : (
-              <Sparkles className="h-8 w-8 text-accent shrink-0 mt-0.5" />
-            )}
+            <CheckCircle2 className="h-8 w-8 text-green-600 shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold">
-                {isActive ? "All-Access Active" : "All-Access Library"}
-              </p>
+              <p className="font-semibold">Everything is Free</p>
               <p className="text-sm text-muted-foreground">
-                {isActive
-                  ? `Everything is unlocked — ${daysLeft} day${daysLeft === 1 ? "" : "s"} left (until ${expiresAt?.toLocaleDateString()}). Renewing adds time on top.`
-                  : "Unlock every ebook and game for K10/month or K100/year."}
+                Every ebook and every game is free with your account. Downloads from any
+                book's page are saved to your device.
               </p>
             </div>
           </div>
-          <Link to="/all-access" className="shrink-0">
-            <Button variant={isActive ? "outline" : "default"} className={isActive ? "" : "bg-accent text-accent-foreground hover:bg-accent/90"}>
-              {isActive ? "Add More Time" : "Get All-Access"}
+          <Link to="/browse" className="shrink-0">
+            <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
+              Browse Ebooks
             </Button>
           </Link>
         </CardContent>
@@ -87,8 +78,8 @@ const MyLibrary = () => {
       ) : purchases.length === 0 ? (
         <div className="text-center py-20">
           <BookOpen className="h-16 w-16 text-muted-foreground/40 mx-auto mb-4" />
-          <h2 className="font-display text-xl font-semibold mb-2">No Purchases Yet</h2>
-          <p className="text-muted-foreground mb-6">Once you purchase ebooks, they'll appear here for download.</p>
+          <h2 className="font-display text-xl font-semibold mb-2">No Downloads Yet</h2>
+          <p className="text-muted-foreground mb-6">Every book is free — grab your first one from the library.</p>
           <Link to="/browse"><Button className="bg-accent text-accent-foreground hover:bg-accent/90">Browse Ebooks</Button></Link>
         </div>
       ) : (

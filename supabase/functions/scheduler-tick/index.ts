@@ -111,9 +111,10 @@ Deno.serve(async (req) => {
         const ebook = books && books.length ? books[Math.floor(Math.random() * books.length)] : null;
 
         const direction = pickDirection(sch);
+        // 2026-08-18: every ebook is free - never quote a price in captions.
         const bookBlock = ebook
-          ? `Book: "${ebook.title}" by ${ebook.author}. Category: ${ebook.category}. Price: K${(ebook.price / 100).toFixed(2)}. ${ebook.description ?? ""}`
-          : "Promote the E Library Christian ebook marketplace (Zambia).";
+          ? `Book: "${ebook.title}" by ${ebook.author}. Category: ${ebook.category}. It is completely FREE on elibrary.live. ${ebook.description ?? ""}`
+          : "Promote the E Library Christian ebook library (Zambia) - every book is free at elibrary.live.";
 
         const captionPrompt = `You write social media posts for E Library, a Christian ebook marketplace in Zambia (Kwacha / K).
 ${bookBlock}

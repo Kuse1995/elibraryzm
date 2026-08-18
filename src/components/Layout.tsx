@@ -1,22 +1,19 @@
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingCart, User, Menu, X, LogOut } from "lucide-react";
+import { User, Menu, X, LogOut } from "lucide-react";
 import logo from "@/assets/elibrary-logo.png";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
-  const { items } = useCart();
   const { user, isAdmin, isAuthor, signOut } = useAuth();
-  const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
   const navLinks = [
     { to: "/", label: "Home" },
     { to: "/browse", label: "Browse" },
-    { to: "/all-access", label: "All-Access" },
+    { to: "/all-access", label: "Free Access" },
     { to: "/games", label: "Games" },
     { to: "/studio", label: "Book Studio" },
     ...(user ? [{ to: "/my-library", label: "My Library" }] : []),
@@ -30,11 +27,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         <div className="bg-accent text-accent-foreground">
           <div className="container flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 py-2.5 text-center">
             <p className="text-sm sm:text-base font-semibold">
-              <span aria-hidden="true">🎁</span> Subscribe to All-Access — every book + all 6 Bible games
+              <span aria-hidden="true">🎁</span> Every book &amp; Bible game is FREE — just sign up
             </p>
             <Link to="/all-access">
               <Button size="lg" className="bg-white text-primary font-bold shadow-md hover:bg-white/90 h-auto py-2">
-                K10 a month or K100 a year →
+                Create your free account →
               </Button>
             </Link>
           </div>
@@ -61,16 +58,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Link to="/cart">
-              <Button variant="ghost" size="icon" className="relative">
-                <ShoppingCart className="h-5 w-5" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-accent text-accent-foreground text-xs flex items-center justify-center font-semibold">
-                    {cartCount}
-                  </span>
-                )}
-              </Button>
-            </Link>
             {user ? (
               <div className="flex items-center gap-1">
                 <span className="hidden sm:inline text-sm font-medium text-foreground">

@@ -306,18 +306,18 @@ const EbookDetail = () => {
               <Link to="/all-access">
                 <Button variant="outline" size="lg" className="w-full gap-2">
                   <Gift className="h-4 w-4" />
-                  Get All-Access — every book + all games, K10/month or K100/year
+                  Everything is free — see what's included
                 </Button>
               </Link>
 
               {!user ? (
                 <div className="text-center space-y-4 py-4">
                   <p className="text-muted-foreground">
-                    Create an account to purchase. Your ebooks will be saved to your library forever.
+                    Create a free account to download. Your ebooks will be saved to your library forever.
                   </p>
                   <Link to={`/auth?redirect=/ebook/${id}`}>
                     <Button size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                      Create Account to Purchase
+                      Create Free Account
                     </Button>
                   </Link>
                 </div>

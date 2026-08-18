@@ -269,14 +269,12 @@ export default function ArkAdventure() {
           </h2>
           <p className="text-white/85">
             You saved {animals} animal{animals === 1 ? "" : "s"} in Level 1 — {levelName}.
-            The Storm and The Flood unlock with All-Access, together with every book and all our games.
+            The Storm and The Flood are free too — the whole game is free, forever.
           </p>
           <div className="flex w-full max-w-xs flex-col gap-2.5">
-            <Link to="/all-access" className="w-full">
-              <Button size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                Unlock with All-Access — K10/month or K100/year <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+            <Button size="lg" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => setScreen("play")}>
+              Keep Playing — it's free <ArrowRight className="h-4 w-4" />
+            </Button>
             {!user && (
               <Link to="/auth?redirect=/games/ark-adventure" className="w-full">
                 <Button variant="outline" size="lg" className="w-full">

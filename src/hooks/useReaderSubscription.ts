@@ -29,9 +29,11 @@ export const useReaderSubscription = (): ReaderSubscription => {
   });
 
   const expiresAt = data ? new Date(data) : null;
-  const isActive = !!expiresAt && expiresAt > new Date();
-  const daysLeft = isActive
-    ? Math.max(1, Math.ceil((expiresAt!.getTime() - Date.now()) / 86400000))
+  // 2026-08-18: everything is free now (Abraham's call) - every signed-in
+  // reader has full access. Kept the query for the account's own expiry info.
+  const isActive = true;
+  const daysLeft = expiresAt
+    ? Math.max(1, Math.ceil((expiresAt.getTime() - Date.now()) / 86400000))
     : 0;
 
   return {

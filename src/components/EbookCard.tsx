@@ -53,7 +53,7 @@ const EbookCard = ({ ebook }: { ebook: Ebook }) => {
             )}
           </div>
           {!isFree && (
-            <p className="text-xs text-muted-foreground">Included in All-Access · K10/month</p>
+            <p className="text-xs text-muted-foreground">Free with a free account</p>
           )}
         </CardContent>
       </Card>

@@ -10,7 +10,7 @@ export interface GameMeta {
   emoji: string;
   gradient: string;
   accent: string;
-  /** Premium games: Level 1 is a free demo for everyone, the rest unlocks with All-Access. */
+  /** Adventure games with big worlds — all free since 2026-08-18 (everything on E Library is free). */
   premium?: boolean;
 }
 
@@ -19,7 +19,7 @@ export const GAMES: GameMeta[] = [
     slug: "ark-adventure",
     title: "Noah's Ark Adventure",
     tagline: "Run, jump and save the animals",
-    description: "Our premium adventure: gather every animal pair, brave the storm and outrun the flood. Level 1 is free for everyone - the full journey unlocks with All-Access.",
+    description: "Our big adventure: gather every animal pair, brave the storm and outrun the flood. The full journey is free for everyone.",
     audience: "Kids",
     difficulty: 2,
     emoji: "🌈",
@@ -31,7 +31,7 @@ export const GAMES: GameMeta[] = [
     slug: "jonah-adventure",
     title: "Jonah & the Whale",
     tagline: "Drag, aim, release",
-    description: "Our premium physics puzzle: fling Jonah across 15 hand-crafted stages - bounce pads, rolling barrels, water and starfish. The Storm is free - The Belly and Nineveh unlock with All-Access.",
+    description: "Our physics puzzle: fling Jonah across 15 hand-crafted stages - bounce pads, rolling barrels, water and starfish. All chapters are free for everyone.",
     audience: "Kids",
     difficulty: 2,
     emoji: "🐋",
@@ -43,7 +43,7 @@ export const GAMES: GameMeta[] = [
     slug: "bible-merge",
     title: "Bible Merge",
     tagline: "Merge, grow, discover the rainbow",
-    description: "Our premium merge puzzle: match seeds to sprouts, sprouts to plants, and grow your way to the rainbow across 15 relaxing levels. The Garden is free - The Fields and The Promise unlock with All-Access.",
+    description: "Our merge puzzle: match seeds to sprouts, sprouts to plants, and grow your way to the rainbow across 15 relaxing levels. All worlds are free for everyone.",
     audience: "Kids",
     difficulty: 1,
     emoji: "🌱",
