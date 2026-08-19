@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>You're offline | E Library Zambia</title>
+  <meta name="theme-color" content="#1A3366" />
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: #1A3366;
+      color: #fdf9ef;
+      text-align: center;
+      padding: 24px;
+    }
+    .card { max-width: 420px; }
+    .emoji { font-size: 56px; margin-bottom: 16px; }
+    h1 { font-size: 24px; margin: 0 0 12px; }
+    p { font-size: 16px; line-height: 1.6; opacity: 0.9; margin: 0 0 20px; }
+    button {
+      background: #E8A530;
+      color: #0d1b33;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 28px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="emoji">📖</div>
+    <h1>You're offline</h1>
+    <p>E Library needs your connection to load books and downloads.
+       Games you've already opened still work offline.</p>
+    <button onclick="location.reload()">Try Again</button>
+  </div>
+</body>
+</html>
