@@ -116,7 +116,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 ) : (
                   <Link to="/auth" className="block hover:text-accent">Sign In</Link>
                 )}
-                <Link to="/whatsapp" className="block hover:text-accent">Subscribe on WhatsApp</Link>
+                <Link to="/whatsapp" className="block hover:text-accent">Get Free Books on WhatsApp</Link>
                 <Link to="/games" className="block hover:text-accent">Play Bible Games</Link>
                 <Link to="/studio" className="block hover:text-accent">Book Studio - Write My Book</Link>
               </div>

@@ -20,11 +20,11 @@ const WhatsAppSubscribe = () => {
     });
     setLoading(false);
     if (error || (data as any)?.error) {
-      toast.error((data as any)?.error || error?.message || "Could not subscribe");
+      toast.error((data as any)?.error || error?.message || "Could not join right now");
       return;
     }
     setDone(true);
-    toast.success("You're subscribed! We'll send new titles and offers on WhatsApp.");
+    toast.success("You're in! We'll send new free titles on WhatsApp.");
   };
 
   return (
@@ -33,17 +33,17 @@ const WhatsAppSubscribe = () => {
         <CardHeader>
           <div className="flex items-center gap-2">
             <MessageCircle className="h-6 w-6 text-accent" />
-            <CardTitle>Subscribe on WhatsApp</CardTitle>
+            <CardTitle>Get Free Books on WhatsApp</CardTitle>
           </div>
           <CardDescription>
-            Get new book releases, devotionals, and special offers straight to your WhatsApp.
+            New free books, devotionals and Bible games - straight to your WhatsApp. Everything is free, always.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {done ? (
             <div className="flex items-center gap-2 text-green-600">
               <CheckCircle2 className="h-5 w-5" />
-              <span>You're subscribed. Watch for a welcome message soon.</span>
+              <span>You're in. Watch for a welcome message soon.</span>
             </div>
           ) : (
             <form onSubmit={submit} className="space-y-4">
@@ -62,7 +62,7 @@ const WhatsAppSubscribe = () => {
                 </p>
               </div>
               <Button type="submit" disabled={loading} className="w-full">
-                {loading ? "Subscribing..." : "Subscribe"}
+                {loading ? "Joining..." : "Join on WhatsApp"}
               </Button>
               <p className="text-xs text-muted-foreground">
                 You can opt out any time by replying STOP on WhatsApp.
